@@ -34,11 +34,11 @@ button, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--gilt); outline-offset: 2px; }
 
 /* entry */
-#entry { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20;
+#entry { position: fixed; inset: 0; display: flex; overflow-y: auto; z-index: 20;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 16px);
   background: radial-gradient(ellipse at 50% 40%, rgba(21, 17, 13, 0.1), rgba(21, 17, 13, 0.7)); }
-.card { width: 100%; max-width: 430px; display: grid; gap: 18px; padding: 28px 26px 24px; background: var(--panel);
+.card { width: 100%; max-width: 430px; margin: auto; display: grid; gap: 16px; padding: 28px 26px 24px; background: var(--panel);
   border: 1px solid var(--line); border-radius: 6px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .eyebrow { font-size: 12px; letter-spacing: 0.14em; color: var(--gilt); }
 .card h1 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 8vw, 40px); line-height: 1.15; text-wrap: balance; letter-spacing: 0.02em; }
@@ -54,6 +54,9 @@ button, input { font: inherit; color: inherit; }
 .robe[aria-pressed="true"] { border-color: var(--gilt); color: var(--vellum); background: rgba(214, 162, 74, 0.12); }
 #enterBtn { padding: 13px 16px; border: 0; border-radius: 4px; background: var(--gilt); color: #1b130a; font-weight: 600; font-size: 15px; cursor: pointer; }
 #enterBtn:hover { filter: brightness(1.07); }
+#enterBtn:disabled { opacity: 0.65; cursor: progress; }
+#nickErr { font-size: 12.5px; color: #f2b37c; line-height: 1.5; }
+.chars .robe i { width: 15px; height: 15px; }
 .fine { font-size: 12.5px; color: var(--ash); line-height: 1.6; }
 #entryCount { color: var(--vellum); }
 
@@ -66,6 +69,8 @@ button, input { font: inherit; color: inherit; }
 #dot.on { background: var(--gilt); box-shadow: 0 0 8px var(--gilt); }
 #net { color: var(--ash); font-size: 12px; }
 #zone { font-family: var(--f-display); color: var(--ash); font-size: 12.5px; }
+#zone.booth { color: var(--gilt); }
+#offer { color: var(--gilt); font-size: 12px; }
 #hint { top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); max-width: 400px; text-align: right;
   font-size: 12px; color: var(--vellum); line-height: 1.5; transition: opacity 1.2s; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.6); }
 #hint.fade { opacity: 0; }
@@ -86,6 +91,11 @@ button, input { font: inherit; color: inherit; }
 .btn { padding: 9px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 14px; }
 .btn:disabled { opacity: 0.45; cursor: default; }
 #waveBtn { border-color: rgba(214, 162, 74, 0.5); }
+#offerBtn { border-color: rgba(214, 162, 74, 0.85); background: rgba(92, 64, 22, 0.85); }
+#acts { right: calc(env(safe-area-inset-right, 0px) + 12px); bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); display: grid; gap: 12px; }
+.act { width: 60px; height: 60px; border-radius: 50%; border: 1px solid rgba(214, 162, 74, 0.75); background: rgba(21, 17, 13, 0.7); font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
+.act:active { background: rgba(214, 162, 74, 0.35); }
+body.coarse #log { width: min(380px, calc(100vw - 110px)); }
 #stick { position: fixed; z-index: 9; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; border: 1px solid var(--line); background: rgba(241,232,214,.08); pointer-events: none; }
 #knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(214,162,74,.45); border: 1px solid rgba(214,162,74,.8); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -99,6 +109,7 @@ button, input { font: inherit; color: inherit; }
   <div class="row"><span id="dot"></span><span id="count">혼자 둘러보는 중입니다</span></div>
   <div id="net"></div>
   <div id="zone">신랑</div>
+  <div id="offer" hidden></div>
 </div>
 <div id="hint" class="hud" hidden></div>
 <div id="log" class="hud" aria-live="polite" hidden></div>
@@ -109,6 +120,11 @@ button, input { font: inherit; color: inherit; }
     <button id="sendBtn" class="btn" type="submit" disabled>보내기</button>
   </form>
   <button id="waveBtn" class="btn" type="button">손 흔들기</button>
+  <button id="offerBtn" class="btn" type="button" hidden>헌금하기</button>
+</div>
+<div id="acts" class="hud" hidden>
+  <button id="jumpBtn" class="act" type="button">점프</button>
+  <button id="rollBtn" class="act" type="button">구르기</button>
 </div>
 <div id="stick" hidden><div id="knob"></div></div>
 
@@ -120,19 +136,28 @@ button, input { font: inherit; color: inherit; }
     <p>이 링크를 연 사람들이 같은 신랑을 함께 걷습니다. 서로의 모습이 보이고, 짧은 인사를 나눌 수 있습니다.</p>
     <div class="field">
       <label for="nick">부를 이름 (선택)</label>
-      <input id="nick" maxlength="20" placeholder="비워 두면 계정 이름이나 '순례자'로 보입니다">
+      <input id="nick" maxlength="20" placeholder="비워 두면 계정 이름이나 '순례자'로 보입니다" aria-describedby="nickErr">
+      <p id="nickErr" role="alert" hidden></p>
+    </div>
+    <div class="field">
+      <span class="lab" id="charLab">인물</span>
+      <div class="robes chars" id="chars" role="group" aria-labelledby="charLab"></div>
     </div>
     <div class="field">
       <span class="lab" id="robeLab">옷 색</span>
       <div class="robes" id="robes" role="group" aria-labelledby="robeLab"></div>
     </div>
     <button id="enterBtn" type="submit">입장하기</button>
-    <div class="fine"><span id="entryCount">연결을 확인하고 있습니다…</span><br><span id="entryHelp">WASD로 걷고(Shift는 빠르게) 마우스를 끌어 시점을 돌립니다. 휠로 카메라 거리를 조절합니다.</span></div>
+    <div class="fine"><span id="entryCount">연결을 확인하고 있습니다…</span><br><span id="entryHelp">WASD로 걷고(Shift는 빠르게) 마우스를 끌어 시점을 돌립니다. Space 점프 · C 구르기 · E 상호작용(고해소 자리에 앉기, 헌금)입니다.</span></div>
   </form>
 </div>
 
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { CHARACTERS, makeAvatar as makeCharAvatar, poseAvatar, JUMP, ROLL, WAVE, PIVOT, HEAD_Y, jumpY, rollDist } from './nd/characters.js';
+import { buildConfessionals } from './nd/confessional.js';
+import { buildOffering, formatTotal } from './nd/offering.js';
+import { initNames, claimNick, signPresence, verifyPeer, myNick as claimedNick } from './nd/names.js';
 
 // ---------- small helpers ----------
 const TAU = Math.PI * 2;
@@ -905,6 +930,17 @@ const flameGeo = new THREE.BufferGeometry(); flameGeo.setAttribute('position', n
 const flameMat = new THREE.PointsMaterial({ map: flameTex, size: 0.13, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: '#ffd28a', fog: false, toneMapped: false });
 const flames = new THREE.Points(flameGeo, flameMat); flames.frustumCulled = false; scene.add(flames);
 
+// ---------- confessionals and offering boxes (nd/ modules) ----------
+const CONF = buildConfessionals(THREE, scene, { darkWoodMat: M.darkWood });
+let coinDrops = 0;   // coins seen from other people (test read-out)
+const OFF = buildOffering(THREE, scene, {
+  woodMat: M.darkWood, goldMat: M.gold,
+  onLand: (box) => { if (actx && bus && Math.hypot(box.x - me.x, box.z - me.z) < 14) OFF.playClink(actx, bus); },
+});
+BLOCKS.push(...CONF.blocks, ...OFF.blocks);
+const BOOTH_IDS = new Set(CONF.booths.map((b) => b.id));
+const BOX_IDS = new Set(OFF.boxes.map((b) => b.id));
+
 // ---------- lights ----------
 scene.add(new THREE.HemisphereLight('#fff4e2', '#b9a27e', 2.1));
 const sun = new THREE.DirectionalLight('#fff0d4', 1.3); sun.position.set(0.34, 0.93, 0.12); scene.add(sun);
@@ -1014,6 +1050,10 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { const ci = $('chatInput'); if (!ci.disabled) { e.preventDefault(); ci.focus(); } return; }
   keys.add(e.code);
   if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
+  if (e.repeat) return;
+  if (e.code === 'Space') startAct('jump');
+  else if (e.code === 'KeyC') startAct('roll');
+  else if (e.code === 'KeyE') interact();
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
@@ -1023,7 +1063,7 @@ function movePlayer(dt) {
   const k = (c) => keys.has(c);
   let fwd = (k('KeyW') || k('ArrowUp') ? 1 : 0) - (k('KeyS') || k('ArrowDown') ? 1 : 0);
   let str = (k('KeyD') ? 1 : 0) - (k('KeyA') ? 1 : 0);
-  const turn = (k('ArrowLeft') || k('KeyQ') ? 1 : 0) - (k('ArrowRight') || k('KeyE') ? 1 : 0);
+  const turn = (k('ArrowLeft') ? 1 : 0) - (k('ArrowRight') ? 1 : 0);
   cam.yaw += turn * 1.9 * dt;
   fwd += -joy.y; str += joy.x;
   const mag = Math.hypot(fwd, str);
@@ -1032,39 +1072,71 @@ function movePlayer(dt) {
   const speed = (k('ShiftLeft') || k('ShiftRight')) ? 9 : 4.5;
   const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
   const ux = -sy * fwd + cy * str, uz = -cy * fwd - sy * str;
-  const px = me.x, pz = me.z, dx = ux * speed * dt, dz = uz * speed * dt;
-  if (walkable(me.x + dx, me.z)) me.x += dx;
-  if (walkable(me.x, me.z + dz)) me.z += dz;
-  for (const c of PUSH) { const ddx = me.x - c.x, ddz = me.z - c.z, d = Math.hypot(ddx, ddz); if (d < c.r) { if (d < 1e-4) me.x += c.r; else { me.x = c.x + ddx / d * c.r; me.z = c.z + ddz / d * c.r; } } }
-  if (!walkable(me.x, me.z)) { me.x = px; me.z = pz; }
+  const px = me.x, pz = me.z;
+  moveBy(ux * speed * dt, uz * speed * dt);
   me.ry += wrapA(Math.atan2(-ux, -uz) - me.ry) * (1 - Math.exp(-dt * 10));
   return Math.hypot(me.x - px, me.z - pz) / Math.max(dt, 1e-3);
 }
+function moveBy(dx, dz) {   // walk-style collision: per-axis walkable test, pier push, revert if stuck
+  const n = Math.max(1, Math.ceil(Math.hypot(dx, dz) / 0.1));
+  for (let i = 0; i < n; i++) {
+    const px = me.x, pz = me.z, sx = dx / n, sz = dz / n;
+    if (walkable(me.x + sx, me.z)) me.x += sx;
+    if (walkable(me.x, me.z + sz)) me.z += sz;
+    for (const c of PUSH) { const ddx = me.x - c.x, ddz = me.z - c.z, d = Math.hypot(ddx, ddz); if (d < c.r) { if (d < 1e-4) me.x += c.r; else { me.x = c.x + ddx / d * c.r; me.z = c.z + ddz / d * c.r; } } }
+    if (!walkable(me.x, me.z)) { me.x = px; me.z = pz; }
+  }
+}
+// ---------- jump / roll (mine) ----------
+const ACT_DUR = { jump: JUMP.dur, roll: ROLL.dur };
+let rollReady = 0;
+function startAct(kind) {
+  if (!entered || !meRec || meRec.act) return false;   // one action at a time
+  const now = performance.now();
+  if (kind === 'roll' && now < rollReady) return false;
+  meRec.act = kind; meRec.actT = 0; meRec.as += 1;
+  sendPresence(now, true);
+  return true;
+}
+function stepMyAct(dt, now) {
+  const r = meRec; if (!r || !r.act) return;
+  const prev = r.actT; r.actT = Math.min(r.actT + dt, ACT_DUR[r.act]);
+  if (r.act === 'roll') {
+    const d = rollDist(r.actT) - rollDist(prev);
+    if (d > 0) moveBy(-Math.sin(me.ry) * d, -Math.cos(me.ry) * d);
+  }
+  if (r.actT >= ACT_DUR[r.act]) { if (r.act === 'roll') rollReady = now + 1000; r.act = null; r.actT = 0; }
+}
+const actCode = () => (meRec && meRec.act ? (meRec.act === 'jump' ? 'j' : 'r') : null);
 const TARGET_Y = 1.5;
+let camLift = 0;
 function updateCamera(dt) {
   const k = 1 - Math.exp(-dt * 10);
   cam.tx += (me.x - cam.tx) * k; cam.tz += (me.z - cam.tz) * k;
+  const lift = meRec && meRec.act === 'jump' ? jumpY(meRec.actT) : 0;
+  camLift += (lift - camLift) * (1 - Math.exp(-dt * 8));
+  const TY = TARGET_Y + camLift;
   const cp = Math.cos(cam.pitch), dx = Math.sin(cam.yaw) * cp, dy = Math.sin(cam.pitch), dz = Math.cos(cam.yaw) * cp;
   let allow = cam.dist;
   for (let d = 0.3; d <= cam.dist + 1e-6; d += 0.2) {
-    if (!camFree(cam.tx + dx * d, Math.max(0.3, TARGET_Y + dy * d), cam.tz + dz * d)) { allow = Math.max(0.6, d - 0.35); break; }
+    if (!camFree(cam.tx + dx * d, Math.max(0.3, TY + dy * d), cam.tz + dz * d)) { allow = Math.max(0.6, d - 0.35); break; }
   }
   cam.cur += (allow - cam.cur) * (allow < cam.cur ? Math.min(1, dt * 18) : Math.min(1, dt * 3));
   const d = cam.cur;
-  camera.position.set(cam.tx + dx * d, Math.max(0.3, TARGET_Y + dy * d), cam.tz + dz * d);
-  camera.lookAt(cam.tx, TARGET_Y + 0.1 + Math.max(0, -cam.pitch) * 9, cam.tz);
+  camera.position.set(cam.tx + dx * d, Math.max(0.3, TY + dy * d), cam.tz + dz * d);
+  camera.lookAt(cam.tx, TY + 0.1 + Math.max(0, -cam.pitch) * 9, cam.tz);
   if (meRec) meRec.av.g.visible = entered && d > 0.9;
 }
 
-// ---------- avatars ----------
-const robeGeo = new THREE.LatheGeometry([[0, 0], [0.42, 0], [0.4, 0.08], [0.33, 0.55], [0.27, 1.0], [0.24, 1.28], [0.13, 1.42], [0, 1.44]].map(([x, y]) => new THREE.Vector2(x, y)), 18);
-const headGeo = new THREE.SphereGeometry(0.155, 16, 12);
-const hoodGeo = new THREE.SphereGeometry(0.19, 16, 10, 0, TAU, 0, Math.PI * 0.6);
-const stoleGeo = new THREE.BoxGeometry(0.07, 0.95, 0.03);
-const handGeo = new THREE.SphereGeometry(0.065, 10, 8);
-const skinMat = new THREE.MeshStandardMaterial({ color: '#d9b994', roughness: 0.8 });
-const robeMats = new Map();
-function robeMat(hex) { if (!robeMats.has(hex)) robeMats.set(hex, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.85 })); return robeMats.get(hex); }
+// ---------- avatars (nd/characters.js) ----------
+const CHAR_IDS = new Set(CHARACTERS.map((c) => c.id));
+const validChar = (v) => (typeof v === 'string' && CHAR_IDS.has(v) ? v : 'pilgrim');
+const NEUTRAL = '#8a7f72';
+const _hand = new THREE.Vector3();
+function handPos(rec) {   // world position of the right hand (coin drops start here)
+  rec.av.g.updateMatrixWorld(true);
+  return rec.av.arms[0].localToWorld(_hand.set(0, -0.55, 0)).clone();
+}
 function labelCanvas(text) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 112; const g = c.getContext('2d');
   g.font = '600 44px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
@@ -1095,30 +1167,44 @@ function spriteFrom(c, sx, sy) {
 function disposeSprite(s) { if (!s) return; s.material.map.dispose(); s.material.dispose(); s.parent && s.parent.remove(s); }
 
 const others = new Map(); // peer key -> record
-function makeAvatar(color) {
-  const g = new THREE.Group();
-  const body = new THREE.Group(); g.add(body);
-  const robe = new THREE.Mesh(robeGeo, robeMat(color)); body.add(robe);
-  const head = new THREE.Mesh(headGeo, skinMat); head.position.set(0, 1.56, 0); body.add(head);
-  const hood = new THREE.Mesh(hoodGeo, robeMat(color)); hood.position.set(0, 1.57, 0.02); hood.rotation.x = 0.75; body.add(hood);
-  for (const sx of [-0.09, 0.09]) { const st = new THREE.Mesh(stoleGeo, M.gold); st.position.set(sx, 0.95, -0.275); st.rotation.x = 0.07; body.add(st); }
-  const hand = new THREE.Mesh(handGeo, skinMat); hand.position.set(0.3, 0.95, -0.12); body.add(hand);
-  return { g, body, robe, hood, hand };
-}
+// labels and bubbles hang off the root and rise with the body (jump, hop, roll)
+const tagY = (rec, extra) => (HEAD_Y[rec.ch] || 1.8) + extra + (rec.av.body.position.y - PIVOT);
 function upsertPeer(p, x, z, ry) {
   const pr = p.presence || {};
-  const color = (typeof pr.color === 'string' && ROBE_HEX.has(pr.color.toLowerCase())) ? pr.color.toLowerCase() : '#8a7f72';
+  const color = (typeof pr.color === 'string' && ROBE_HEX.has(pr.color.toLowerCase())) ? pr.color.toLowerCase() : NEUTRAL;
   const nick = cleanText(pr.nick, 20);
+  const ch = validChar(pr.ch);
+  const now = performance.now();
   let rec = others.get(p.peer);
   if (!rec) {
-    const av = makeAvatar(color);
+    const av = makeCharAvatar(ch, color);
     av.g.position.set(x, 0, z); av.g.rotation.y = ry; scene.add(av.g);
-    rec = { peer: p.peer, by: p.by, av, color, nick, name: '', label: null, bubble: null, bubbleUntil: 0, waveT: -1, cur: { x, z, ry }, tgt: { x, z, ry }, phase: Math.random() * TAU, moving: 0 };
+    rec = { peer: p.peer, by: p.by, av, ch, chAt: now, color, nick, name: '', label: null, bubble: null, bubbleUntil: 0, waveT: -1,
+      act: null, actT: 0, as: undefined, acts: { j: 0, r: 0 }, cur: { x, z, ry }, tgt: { x, z, ry } };
     others.set(p.peer, rec);
   }
   rec.by = p.by; rec.nick = nick; rec.tgt = { x, z, ry }; rec.isMe = !!p.isMe;
-  if (color !== rec.color) { rec.color = color; rec.av.robe.material = robeMat(color); rec.av.hood.material = robeMat(color); }
+  if (color !== rec.color) { rec.color = color; rec.av.setAccent(color); }
+  if (ch !== rec.ch && now - rec.chAt >= 2000) rebuildAvatar(rec, ch);   // character swaps: at most once per 2 s per peer
+  remoteAct(rec, pr.a, pr.as);
   return rec;
+}
+function rebuildAvatar(rec, ch) {
+  const old = rec.av, av = makeCharAvatar(ch, rec.color);
+  av.g.position.copy(old.g.position); av.g.rotation.y = old.g.rotation.y; av.g.visible = old.g.visible;
+  for (const s of [rec.label, rec.bubble]) if (s) av.g.add(s);
+  old.dispose(); scene.add(av.g);
+  rec.av = av; rec.ch = ch; rec.chAt = performance.now(); rec.act = null; rec.actT = 0;
+}
+// presence a ('j'|'r'|null) + as (action counter): a new counter value starts the action locally
+function remoteAct(rec, a, as) {
+  if (typeof as !== 'number' || !Number.isInteger(as) || as < 0 || as > 1e9) return;
+  if (rec.as === undefined) { rec.as = as; return; }   // first sight: baseline only, never replay
+  if (as <= rec.as) return;                            // stale
+  const leap = as - rec.as; rec.as = as;
+  if (leap > 1000) return;                             // absurd leap: resync without animating
+  // the sender never overlaps actions, so a newer counter replaces whatever is still playing here (receiver lag)
+  if (a === 'j' || a === 'r') { rec.act = a === 'j' ? 'jump' : 'roll'; rec.actT = 0; rec.acts[a]++; }
 }
 function setLabel(rec, name) {
   if (rec.name === name && rec.label) return;
@@ -1126,11 +1212,11 @@ function setLabel(rec, name) {
   if (rec.label && rec !== meRec) { if (t - (rec.labelAt || 0) < 2000) return; }   // remote nick changes: at most once per 2 s
   rec.labelAt = t;
   rec.name = name; disposeSprite(rec.label);
-  rec.label = spriteFrom(labelCanvas(name), 1.5, 0.33); rec.label.position.set(0, 2.05, 0); rec.av.g.add(rec.label);
+  rec.label = spriteFrom(labelCanvas(name), 1.5, 0.33); rec.label.position.set(0, tagY(rec, 0.3), 0); rec.av.g.add(rec.label);
 }
 function removePeer(peer) {
   const rec = others.get(peer); if (!rec) return;
-  disposeSprite(rec.label); disposeSprite(rec.bubble); scene.remove(rec.av.g); others.delete(peer);
+  disposeSprite(rec.label); disposeSprite(rec.bubble); rec.av.dispose(); others.delete(peer);
 }
 function showBubble(rec, text) {
   if (!rec) return;
@@ -1138,31 +1224,30 @@ function showBubble(rec, text) {
   if (t - (rec.bubbleAt || 0) < 500) return;   // at most one bubble per 0.5 s per avatar
   rec.bubbleAt = t;
   disposeSprite(rec.bubble);
-  rec.bubble = spriteFrom(bubbleCanvas(text), 2.2, 0.945); rec.bubble.position.set(0, 2.62, 0); rec.av.g.add(rec.bubble);
+  rec.bubble = spriteFrom(bubbleCanvas(text), 2.2, 0.945); rec.bubble.position.set(0, tagY(rec, 0.85), 0); rec.av.g.add(rec.bubble);
   rec.bubbleUntil = performance.now() + 7000;
 }
 function animAvatar(rec, v, dt, t, now) {
-  const k = Math.min(1, dt * 9);
-  rec.moving += ((v > 0.25 ? 1 : 0) - rec.moving) * k;
-  if (!reduceMotion) rec.phase += dt * Math.min(v, 5) * 2.6;
-  let y = Math.abs(Math.sin(rec.phase)) * 0.05 * rec.moving, handUp = 0;
-  if (rec.waveT >= 0) {
-    rec.waveT += dt; const w = rec.waveT;
-    y += Math.abs(Math.sin(w * Math.PI * 2.6)) * 0.22 * Math.max(0, 1 - w / 1.4);
-    handUp = Math.max(0, 1 - Math.max(0, w - 1.2) / 0.4);
-    if (w > 1.6) rec.waveT = -1;
-  }
-  rec.av.body.position.y = y;
-  rec.av.hand.position.set(0.3 + handUp * 0.06, 0.95 + handUp * 0.85, -0.12 + Math.sin(t * 14) * 0.06 * handUp);
-  if (rec.bubble && now > rec.bubbleUntil) { disposeSprite(rec.bubble); rec.bubble = null; }
+  if (rec !== meRec && rec.act) { rec.actT += dt; if (rec.actT >= ACT_DUR[rec.act]) { rec.act = null; rec.actT = 0; } }
+  if (rec.waveT >= 0) { rec.waveT += dt; if (rec.waveT > WAVE.dur) rec.waveT = -1; }
+  poseAvatar(rec.av, { speed: reduceMotion ? 0 : v, act: rec.act, actT: rec.actT, waveT: rec.waveT }, dt, t);
+  if (rec.label) rec.label.position.y = tagY(rec, 0.3);
+  if (rec.bubble) { if (now > rec.bubbleUntil) { disposeSprite(rec.bubble); rec.bubble = null; } else rec.bubble.position.y = tagY(rec, 0.85); }
 }
 let meRec = null;
 function ensureMe() {
-  if (meRec) { meRec.av.robe.material = robeMat(myColor); meRec.av.hood.material = robeMat(myColor); return; }
-  const av = makeAvatar(myColor); scene.add(av.g);
-  meRec = { av, label: null, bubble: null, bubbleUntil: 0, waveT: -1, phase: 0, moving: 0, name: '' };
+  if (meRec && meRec.ch === myChar) { meRec.color = myColor; meRec.av.setAccent(myColor); return; }
+  if (meRec) { meRec.color = myColor; rebuildAvatar(meRec, myChar); return; }
+  const av = makeCharAvatar(myChar, myColor); scene.add(av.g);
+  meRec = { av, ch: myChar, color: myColor, label: null, bubble: null, bubbleUntil: 0, waveT: -1, act: null, actT: 0, as: 0, name: '' };
 }
-function refreshMyLabel() { if (meRec) setLabel(meRec, myProfileName || myNick() || '순례자'); }
+function myDisplayName() {
+  if (netMode() === 'room') return myProfileName || myNick() || '순례자';   // claude.ai room: profile names as before
+  if (nickState === 'ok') return claimedNick() || '순례자';
+  if (nickState === 'pending') return (connecting || mq) ? `${myNick()} (확인 전)` : myNick();
+  return '순례자';
+}
+function refreshMyLabel() { if (meRec) setLabel(meRec, myDisplayName()); }
 
 // ---------- audio: a small bell ----------
 let actx = null, bus = null;
@@ -1206,7 +1291,12 @@ function logLine(name, text, sys) {
 let room = null, user = null, viewOnly = false, roomDead = false, mq = null, connecting = true, myProfileName = '';
 const chatInput = $('chatInput'), sendBtn = $('sendBtn'), waveBtn = $('waveBtn');
 const myNick = () => cleanText($('nick').value, 20);
-let myColor = ROBES[0].hex;
+let myColor = ROBES[0].hex, myChar = 'pilgrim';
+let nickState = 'none';          // MQTT names: 'none' (순례자) | 'pending' (확인 전, retrying) | 'ok' (claimed)
+let mySig = null, testForge = null;
+let myBooth = null, boothNoticed = false;
+let offerTotal = 0, offerTotalKnown = false, offerCool = 0, nearBoxId = '';
+const offerSeen = new Map();     // sender -> last offer time (receivers: 1 per 2 s)
 const netMode = () => (room && !roomDead) ? 'room' : (mq ? 'mq' : null);
 function netLive() { const m = netMode(); return m === 'room' ? room.connected() : (m === 'mq' ? mq.live : false); }
 function viewerPeers() { return room && !roomDead ? room.peers().filter((p) => p.kind === 'viewer') : []; }
@@ -1219,9 +1309,9 @@ function peopleCount() {
 function refreshControls() {
   const live = netLive(), can = live && !viewOnly, pending = connecting || (!!netMode() && !live);
   chatInput.disabled = !can; sendBtn.disabled = !can;
-  chatInput.placeholder = viewOnly ? '보기 전용입니다. 대화는 보낼 수 없습니다' : (can ? '인사를 남겨 보세요 (Enter)' : (pending ? '연결 중입니다…' : '혼자 둘러보는 중이라 대화는 쓸 수 없습니다'));
+  chatInput.placeholder = viewOnly ? '보기 전용입니다. 대화는 보낼 수 없습니다' : (can ? (myBooth ? '고해소 안에서 조용히 말하기' : '인사를 남겨 보세요 (Enter)') : (pending ? '연결 중입니다…' : '혼자 둘러보는 중이라 대화는 쓸 수 없습니다'));
   $('dot').classList.toggle('on', live);
-  updateCount();
+  updateCount(); refreshMyLabel();
 }
 function netLabel() {
   const m = netMode(), live = netLive();
@@ -1302,6 +1392,25 @@ async function connectNet() {
       const who = await senderName(msg);
       logLine(null, msg.sameTab ? '손을 흔들었습니다.' : `${who} 님이 손을 흔들었습니다.`, true);
     }, onErr);
+    room.on('booth', async (msg) => {   // heard only inside the same booth; never in the public log
+      const dd = msg.data && typeof msg.data === 'object' ? msg.data : {};
+      const bid = typeof dd.booth === 'string' ? dd.booth : '';
+      if (!BOOTH_IDS.has(bid) || !myBooth || myBooth.id !== bid) return;
+      const text = cleanText(dd.text, 120); if (!text) return;
+      const rec = others.get(msg.peer);
+      if (!rec && !msg.sameTab) return;
+      if (rec && !msg.sameTab) { const sb = CONF.boothAt(rec.cur.x, rec.cur.z); if (!sb || sb.id !== bid) return; }
+      if (rec && !msg.sameTab) showBubble(rec, text);
+      logLine('🕯 ' + await senderName(msg), text);
+    }, onErr);
+    room.on('offer', (msg) => {
+      if (msg.sameTab) return;
+      const dd = msg.data && typeof msg.data === 'object' ? msg.data : {};
+      const rec = others.get(msg.peer);
+      if (!rec || !BOX_IDS.has(dd.box) || !offerRateOk(msg.peer)) return;
+      OFF.dropCoin(dd.box, handPos(rec), 'coin'); coinDrops++;
+      offerTotal++; updateOfferHud();   // room mode: the count is local-only
+    }, onErr);
   } else {
     room = null;
   }
@@ -1314,6 +1423,10 @@ async function connectNet() {
 // Every broker below is joined at once and all of them stay open: we publish to every live one and listen on every live one,
 // so two people who can each reach only one of the brokers still meet whenever they share at least one.
 const MQ_P = 'brx-cathedral-v1/nd/';
+// nickname registry (nd/names.js) lives beside it under brx-cathedral-v1/names/<sha256> (retained, never through the chat budgets)
+const NAMES_PREFIX = 'brx-cathedral-v1/', NAMES_P = NAMES_PREFIX + 'names/';
+const namesTopics = new Set();
+let namesOnMsg = null, namesInit = false;
 const MQ_BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'];
 const myId = (Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8)).replace(/[^a-z0-9]/g, '');
 const mqRate = new Map();
@@ -1355,8 +1468,9 @@ async function connectMqtt() {
       client.on('error', () => {});
       client.on('connect', () => {
         c.live = true; c.everUp = true;
-        client.subscribe([MQ_P + 'p/+', MQ_P + 'bye/+', MQ_P + 'chat', MQ_P + 'wave'], { qos: 0 });
-        if (!mq) mq = st;   // first broker up: switch to public mode now, the others join as they connect
+        client.subscribe([MQ_P + 'p/+', MQ_P + 'bye/+', MQ_P + 'chat', MQ_P + 'wave', MQ_P + 'booth/+', MQ_P + 'offer', MQ_P + 'offer/total'], { qos: 0 });
+        if (namesTopics.size) client.subscribe([...namesTopics], { qos: 0 });
+        if (!mq) { mq = st; startNames(); }   // first broker up: switch to public mode now, the others join as they connect
         refreshControls(); sendPresence(performance.now(), true);
         finish();
       });
@@ -1365,7 +1479,10 @@ async function connectMqtt() {
         if (mq) refreshControls();
         if (!c.everUp && !c.failedOnce) { c.failedOnce = true; if (++failed >= MQ_BROKERS.length) finish(); }
       });
-      client.on('message', onMqMessage);
+      client.on('message', (topic, payload) => {
+        if (typeof topic === 'string' && topic.startsWith(NAMES_P)) { if (namesOnMsg) namesOnMsg(topic, payload); return; }
+        onMqMessage(topic, payload);
+      });
     }
     if (failed >= MQ_BROKERS.length) finish();
   });
@@ -1378,10 +1495,57 @@ async function connectMqtt() {
     for (const c of st.clients) { try { if (c.live) c.client.publish(MQ_P + 'bye/' + myId, body, { qos: 0, retain: false }); c.client.end(); } catch (e) { /* leaving */ } }
   });
 }
+function liveClients() { return mq ? mq.clients.filter((c) => c.live) : []; }
+function startNames() {
+  if (namesInit) return; namesInit = true;
+  initNames({
+    prefix: NAMES_PREFIX,
+    online: () => !!(mq && mq.live),
+    onMessage: (fn) => { namesOnMsg = fn; },
+    publish: (topic, body, opts) => { for (const c of liveClients()) { try { c.client.publish(topic, body, { qos: 0, retain: !!(opts && opts.retain) }); } catch (e) { /* drop */ } } },
+    unsubscribe: (topic) => { namesTopics.delete(topic); for (const c of liveClients()) { try { c.client.unsubscribe(topic); } catch (e) { /* ignore */ } } },
+    subscribe: (topic) => new Promise((resolve, reject) => {   // resolves on the first broker's ack; forces a fresh retained read
+      namesTopics.add(topic);
+      const live = liveClients(); if (!live.length) { reject(new Error('offline')); return; }
+      let left = live.length, done = false;
+      const tm = setTimeout(() => { if (!done) { done = true; reject(new Error('timeout')); } }, 5000);
+      for (const c of live) {
+        try {
+          c.client.subscribe({ [topic]: { qos: 0 }, resubscribe: true }, (err) => {
+            if (done) return;
+            if (!err) { done = true; clearTimeout(tm); resolve(); } else if (--left === 0) { done = true; clearTimeout(tm); reject(err); }
+          });
+        } catch (e) { if (--left === 0 && !done) { done = true; clearTimeout(tm); reject(e); } }
+      }
+    }),
+  });
+}
+// shared offering count: retained offer/total {n, d}; d = Korean calendar day so "오늘" starts again from zero each day
+const kstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+function applyTotal(n, d) {
+  if (typeof n !== 'number' || !Number.isInteger(n) || n < 0 || n > 1e7 || d !== kstDay()) return;
+  if (!offerTotalKnown && n > 100000) return;   // first retained value is trusted: cap it
+  if (!offerTotalKnown) { offerTotalKnown = true; offerTotal = Math.max(offerTotal, n); }
+  else if (n > offerTotal) offerTotal = Math.min(n, offerTotal + 5);   // tampering can only nudge it by 5 per message
+  updateOfferHud();
+}
+function updateOfferHud() { $('offer').textContent = formatTotal(offerTotal); }
+function offerRateOk(sender) {
+  const now = performance.now(), last = offerSeen.get(sender) || -1e9;
+  if (now - last < 2000) return false;
+  if (offerSeen.size > 500) offerSeen.clear();
+  offerSeen.set(sender, now); return true;
+}
 function onMqMessage(topic, payload) {
   if (!payload || payload.length > 2048 || typeof topic !== 'string' || !topic.startsWith(MQ_P)) return;
   let d; try { d = JSON.parse(dec.decode(payload)); } catch (e) { return; }
   if (!d || typeof d !== 'object') return;
+  if (topic === MQ_P + 'offer/total') {   // retained, no sender id: global budget only
+    const now = performance.now();
+    if (now - mqAll.t > 1000) mqAll = { t: now, n: 0 };
+    if (++mqAll.n > MQ_GLOBAL_BUDGET) return;
+    applyTotal(d.n, d.d); return;
+  }
   const id = typeof d.id === 'string' ? d.id.replace(/[^a-z0-9]/gi, '').slice(0, 24) : '';
   if (!id || id === myId) return;
   const sub = topic.slice(MQ_P.length), key = 'mq:' + id;
@@ -1394,7 +1558,7 @@ function onMqMessage(topic, payload) {
       if (mqLastT.size > 2000) mqLastT.clear();
       mqLastT.set(id, { t, at: performance.now() });
     }
-  } else if (sub === 'chat' || sub === 'wave') {
+  } else if (sub === 'chat' || sub === 'wave' || sub === 'offer' || sub.startsWith('booth/')) {
     const mid = typeof d.mid === 'string' ? d.mid.replace(/[^a-z0-9]/gi, '').slice(0, 16) : '';
     if (mid && mqSeenMid(id + ':' + mid)) return;
   }
@@ -1409,9 +1573,20 @@ function onMqMessage(topic, payload) {
     if (x === null || z === null) return;
     if (!others.has(key) && others.size >= (coarse ? 24 : 80)) return;
     const fresh = !others.has(key);
-    const rec = upsertPeer({ peer: key, by: null, presence: { color: d.color, nick: d.nick } }, x, z, ry === null ? 0 : ry);
+    const rec = upsertPeer({ peer: key, by: null, presence: { color: d.color, nick: d.nick, ch: d.ch, a: d.a, as: d.as } }, x, z, ry === null ? 0 : ry);
     rec.mq = true; rec.lastSeen = now;
-    setLabel(rec, rec.nick || '순례자');
+    // a name shows only after its signed claim checks out (names.js); otherwise '순례자'. One verify per (nick, np, ns).
+    const np = typeof d.np === 'string' ? d.np.slice(0, 64) : '', ns = typeof d.ns === 'string' ? d.ns.slice(0, 200) : '';
+    const vkey = rec.nick && np && ns ? rec.nick + '|' + np + '|' + ns : '';
+    const runVerify = () => {
+      rec.vAt = now; rec.vBusy = true;
+      verifyPeer(id, rec.nick, np, ns).then((n) => { if (rec.vKey === vkey) { rec.vName = cleanText(n || '', 20); setLabel(rec, rec.vName || '순례자'); } }).catch(() => {}).finally(() => { if (rec.vKey === vkey) rec.vBusy = false; });
+    };
+    if (vkey !== rec.vKey) {
+      rec.vKey = vkey; rec.vName = ''; rec.vBusy = false; rec.vAt = 0;
+      if (vkey) runVerify();
+    } else if (vkey && !rec.vName && !rec.vBusy && now - (rec.vAt || 0) >= 15000) runVerify();   // transient failure: retry every 15 s
+    setLabel(rec, rec.vName || '순례자');
     if (fresh) updateCount();
   } else if (sub.startsWith('bye/')) {
     if (sub.slice(4) !== id) return;
@@ -1426,6 +1601,18 @@ function onMqMessage(topic, payload) {
     rec.waveT = 0;
     bell(hashStr(id));
     logLine(null, `${rec.name || '순례자'} 님이 손을 흔들었습니다.`, true);
+  } else if (sub.startsWith('booth/')) {   // only people inside that same booth hear it; never the public log
+    const bid = sub.slice(6); if (!BOOTH_IDS.has(bid)) return;
+    const rec = others.get(key); if (!rec) return;
+    if (!myBooth || myBooth.id !== bid) return;
+    const sb = CONF.boothAt(rec.cur.x, rec.cur.z); if (!sb || sb.id !== bid) return;   // sender must stand in that booth too
+    const text = cleanText(d.text, 120); if (!text) return;
+    showBubble(rec, text);
+    logLine('🕯 ' + (rec.name || '순례자'), text);
+  } else if (sub === 'offer') {
+    const rec = others.get(key); if (!rec) return;
+    if (!BOX_IDS.has(d.box) || !offerRateOk(key)) return;
+    OFF.dropCoin(d.box, handPos(rec), 'coin'); coinDrops++;
   }
 }
 function pruneMq(now) {
@@ -1444,13 +1631,17 @@ function sendPresence(now, full) {
     if (!full && now - lastSent < 70) return;
     if (!full && lastP && p.x === lastP.x && p.z === lastP.z && p.ry === lastP.ry) return;
     lastSent = now; lastP = p;
-    const patch = full ? { ...p, color: myColor, nick: myNick() || null } : p;
+    const patch = full ? { ...p, color: myColor, ch: myChar, a: actCode(), as: meRec ? meRec.as : 0, nick: myNick() || null } : p;
     room.presence(patch).catch(() => {});
   } else if (m === 'mq' && mq.live) {
     const moved = !mq.lastP || p.x !== mq.lastP.x || p.z !== mq.lastP.z || p.ry !== mq.lastP.ry;
     if (!full && !(moved && now - mq.lastSent >= 100) && now - mq.lastSent < 2000) return;
     mq.lastSent = now; mq.lastP = p;
-    mqPub('p/' + myId, { id: myId, ...p, color: myColor, nick: myNick() || null, t: Date.now() });
+    const claimed = nickState === 'ok' ? claimedNick() : '';
+    const body = { id: myId, ...p, color: myColor, ch: myChar, a: actCode(), as: meRec ? meRec.as : 0, nick: claimed || null, t: Date.now() };
+    if (claimed && mySig) { body.np = mySig.np; body.ns = mySig.ns; }
+    if (testForge) Object.assign(body, testForge);
+    mqPub('p/' + myId, body);
   }
 }
 
@@ -1459,9 +1650,13 @@ $('chatForm').addEventListener('submit', (e) => {
   const text = cleanText(chatInput.value, 120);
   if (!text || viewOnly || !netLive()) return;
   chatInput.value = '';
+  const booth = myBooth;
   if (netMode() === 'room') {
-    room.emit('chat', { text }).then(() => showBubble(meRec, text)).catch((err) => { if (err && err.code === 'not_permitted') { viewOnly = true; refreshControls(); waveBtn.disabled = true; } });
-  } else { mqPub('chat', { id: myId, mid: newMid(), text }); showBubble(meRec, text); logLine('나', text); }
+    const deny = (err) => { if (err && err.code === 'not_permitted') { viewOnly = true; refreshControls(); waveBtn.disabled = true; } };
+    if (booth) room.emit('booth', { booth: booth.id, text }).then(() => showBubble(meRec, text)).catch(deny);
+    else room.emit('chat', { text }).then(() => showBubble(meRec, text)).catch(deny);
+  } else if (booth) { mqPub('booth/' + booth.id, { id: myId, mid: newMid(), text }); showBubble(meRec, text); logLine('🕯 나', text); }
+  else { mqPub('chat', { id: myId, mid: newMid(), text }); showBubble(meRec, text); logLine('나', text); }
 });
 let waveCool = 0;
 waveBtn.addEventListener('click', () => {
@@ -1474,11 +1669,61 @@ waveBtn.addEventListener('click', () => {
   } else if (m === 'mq' && netLive()) { mqPub('wave', { id: myId, mid: newMid() }); bell(hashStr(myId)); logLine(null, '손을 흔들었습니다.', true); }
   else { bell(hashStr('me')); logLine(null, '손을 흔들었습니다.', true); }
 });
+// ---------- offering box ----------
+const offerBtn = $('offerBtn');
+function doOffer() {
+  if (!entered || !meRec) return false;
+  const box = OFF.nearBox(me.x, me.z, 1.6); if (!box) return false;
+  const now = performance.now(); if (now < offerCool) return false;
+  offerCool = now + 3000; offerBtn.disabled = true; setTimeout(() => { offerBtn.disabled = false; }, 3000);
+  initAudio();
+  OFF.dropCoin(box.id, handPos(meRec), 'coin');   // the clink plays when it lands (onLand)
+  const m = netMode();
+  offerTotal += 1; updateOfferHud();
+  if (m === 'mq' && netLive()) {
+    mqPub('offer', { id: myId, mid: newMid(), box: box.id });
+    const body = JSON.stringify({ n: offerTotal, d: kstDay() });
+    for (const c of liveClients()) { try { c.client.publish(MQ_P + 'offer/total', body, { qos: 0, retain: true }); } catch (e) { /* drop */ } }
+  } else if (m === 'room' && netLive() && !viewOnly) room.emit('offer', { box: box.id }).catch(() => {});
+  logLine(null, `${box.name}에 헌금했습니다.`, true);
+  return true;
+}
+offerBtn.addEventListener('click', doOffer);
+function interact() {   // E: sit at a confessional seat, otherwise offer at a nearby box
+  if (!entered) return;
+  const s = CONF.seatAt(me.x, me.z);
+  if (s) {
+    const seat = s.booth.seats[s.role];
+    if (walkable(seat.x, seat.z)) { me.x = seat.x; me.z = seat.z; me.ry = seat.ry; cam.yaw = seat.ry; sendPresence(performance.now(), true); }
+    return;
+  }
+  doOffer();
+}
+function onBoothChange() {
+  $('zone').classList.toggle('booth', !!myBooth);
+  if (myBooth && !boothNoticed) { boothNoticed = true; logLine(null, '고해소 대화는 같은 고해소 안의 사람에게만 보입니다. 공개 서버를 거치니 실제 비밀은 적지 마세요.', true); }
+  refreshControls();
+}
+$('jumpBtn').addEventListener('click', () => startAct('jump'));
+$('rollBtn').addEventListener('click', () => startAct('roll'));
 
 // ---------- entry ----------
+const CHAR_DOT = { priest: 'radial-gradient(circle at 50% 30%, #f6f3ec 0 22%, #1c1a1f 24%)', nun: 'linear-gradient(90deg, #1c1a1f 50%, #f6f3ec 50%)',
+  pilgrim: '#6b4a2f', knight: 'linear-gradient(135deg, #d3d7dc, #8d939b)', chorister: 'linear-gradient(180deg, #f6f3ec 45%, #a8222a 45%)' };
+document.body.classList.toggle('coarse', coarse);
 {
   const saved = store.get('cathedral.nick'); if (saved) $('nick').value = cleanText(saved, 20);
   const savedColor = store.get('cathedral.robe'); if (savedColor && ROBE_HEX.has(savedColor)) myColor = savedColor;
+  myChar = validChar(store.get('cathedral.char'));
+  const cw = $('chars');
+  CHARACTERS.forEach((c) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'robe'; b.id = 'char-' + c.id;
+    b.setAttribute('aria-pressed', String(c.id === myChar));
+    const i = document.createElement('i'); i.style.background = CHAR_DOT[c.id] || '#8a7f72'; b.appendChild(i);
+    b.appendChild(document.createTextNode(c.name));
+    b.addEventListener('click', () => { myChar = c.id; cw.querySelectorAll('.robe').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
+    cw.appendChild(b);
+  });
   const wrap = $('robes');
   ROBES.forEach((r) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'robe'; b.id = 'robe-' + r.hex.slice(1);
@@ -1488,17 +1733,65 @@ waveBtn.addEventListener('click', () => {
     b.addEventListener('click', () => { myColor = r.hex; wrap.querySelectorAll('.robe').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
     wrap.appendChild(b);
   });
-  if (coarse) $('entryHelp').textContent = '화면 왼쪽을 엄지로 밀어 걷고, 오른쪽을 끌어 시점을 돌립니다. 두 손가락으로 벌리거나 모아 카메라 거리를 조절합니다.';
+  if (coarse) $('entryHelp').textContent = '화면 왼쪽을 엄지로 밀어 걷고, 오른쪽을 끌어 시점을 돌립니다. 두 손가락으로 카메라 거리를 조절하고, 오른쪽 아래 버튼으로 점프·구르기를 합니다.';
 }
-$('entryForm').addEventListener('submit', (e) => {
+// unique nicknames (MQTT): first come, first served; see nd/names.js for the honest limits
+const nickErr = $('nickErr'), enterBtn = $('enterBtn');
+const NICK_MSG = {
+  taken: '이미 다른 분이 쓰는 이름입니다. 다른 이름을 골라 주세요.',
+  reserved: '쓸 수 없는 이름입니다. 다른 이름을 골라 주세요.',
+  invalid: '이름은 1~20자로 적어 주세요. 다른 이름을 골라 주세요.',
+};
+function showNickErr(msg) { nickErr.textContent = msg; nickErr.hidden = !msg; }
+$('nick').addEventListener('input', () => showNickErr(''));
+let claiming = false, claimTimer = 0, entering = false;
+async function tryClaim() {
+  if (claiming) return { status: 'busy' };
+  claiming = true;
+  try { return await claimNick(myNick()); } catch (e) { return { status: 'offline' }; } finally { claiming = false; }
+}
+function onClaimed() {
+  nickState = 'ok'; mySig = null;
+  signPresence(myId).then((sg) => { mySig = sg; sendPresence(performance.now(), true); }).catch(() => {});
+  refreshMyLabel();
+}
+function scheduleClaimRetry() {   // entered as "(확인 전)": keep trying in the background until the claim settles
+  clearTimeout(claimTimer);
+  claimTimer = setTimeout(async () => {
+    if (nickState !== 'pending') return;
+    if (netMode() === 'room' || (!connecting && !mq)) { refreshMyLabel(); return; }
+    if (!(mq && mq.live)) { scheduleClaimRetry(); return; }
+    const r = await tryClaim();
+    if (nickState !== 'pending') return;
+    if (r.status === 'ok') { onClaimed(); logLine(null, `'${claimedNick()}' 이름이 확인되었습니다.`, true); }
+    else if (r.status === 'offline' || r.status === 'busy') scheduleClaimRetry();
+    else if (r.status === 'unsupported') { nickState = 'none'; refreshMyLabel(); sendPresence(performance.now(), true); }   // no WebCrypto: final, silent
+    else { nickState = 'none'; refreshMyLabel(); sendPresence(performance.now(), true); logLine(null, `'${myNick()}' 이름은 이미 다른 분이 쓰고 있어 '순례자'로 보입니다.`, true); }
+  }, 4000);
+}
+$('entryForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (entering || entered) return;
   initAudio();
-  store.set('cathedral.nick', myNick()); store.set('cathedral.robe', myColor);
+  showNickErr('');
+  const nick = myNick();
+  if (!nick || netMode() === 'room') nickState = 'none';   // empty: 순례자 without a claim; claude.ai room: profile names
+  else if (mq && mq.live) {
+    entering = true; enterBtn.disabled = true; enterBtn.textContent = '이름을 확인하는 중…';
+    const r = await Promise.race([tryClaim(), new Promise((res) => setTimeout(() => res({ status: 'timeout' }), 4000))]);   // late result is ignored; background retry reclaims
+    entering = false; enterBtn.disabled = false; enterBtn.textContent = '입장하기';
+    if (NICK_MSG[r.status]) { showNickErr(NICK_MSG[r.status]); $('nick').focus(); return; }
+    nickState = r.status === 'ok' ? 'ok' : r.status === 'unsupported' ? 'none' : 'pending';
+  } else nickState = 'pending';   // no broker yet: enter now, show "(확인 전)", claim in the background
+  store.set('cathedral.nick', nick); store.set('cathedral.robe', myColor); store.set('cathedral.char', myChar);
   entered = true;
   ensureMe(); refreshMyLabel();
+  if (nickState === 'ok') onClaimed(); else if (nickState === 'pending') scheduleClaimRetry();
   $('entry').hidden = true;
   for (const id of ['badge', 'hint', 'log', 'bar']) $(id).hidden = false;
-  $('hint').textContent = coarse ? '왼쪽 엄지로 걷기 · 오른쪽 끌어 시점 돌리기 · 두 손가락 거리' : 'WASD 걷기 · Shift 빠르게 · 끌어서 시점 돌리기 · 휠 거리 · Enter 대화';
+  $('acts').hidden = !coarse;
+  updateOfferHud();
+  $('hint').textContent = coarse ? '왼쪽 엄지로 걷기 · 오른쪽 끌어 시점 · 두 손가락 거리 · 오른쪽 아래 점프·구르기' : 'WASD 걷기 · Shift 빠르게 · Space 점프 · C 구르기 · E 상호작용 · 끌어서 시점 · 휠 거리 · Enter 대화';
   setTimeout(() => $('hint').classList.add('fade'), 9000);
   canvas.focus({ preventScroll: true });
   sendPresence(performance.now(), true);
@@ -1511,6 +1804,16 @@ function resize() {
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 70 : 60; camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize); resize();
+if (location.hostname === '127.0.0.1') {   // local test read-out only; absent on GitHub Pages and claude.ai
+  window.__nd = {
+    me, cam, others, myId, booths: CONF.booths, boxes: OFF.boxes,
+    get meRec() { return meRec; }, get myBooth() { return myBooth; }, get offerTotal() { return offerTotal; }, get coinDrops() { return coinDrops; },
+    get nickState() { return nickState; }, get mySig() { return mySig; }, get mode() { return netMode(); }, get live() { return netLive(); },
+    setPose(x, z, ry, yaw, pitch, dist) { me.x = x; me.z = z; me.ry = ry; cam.yaw = yaw; cam.pitch = pitch; cam.dist = dist; cam.cur = dist; cam.tx = x; cam.tz = z; },
+    act: (k) => startAct(k), offer: () => doOffer(), interact: () => interact(),
+    forge(o) { testForge = o; sendPresence(performance.now(), true); },
+  };
+}
 
 const clock = new THREE.Clock();
 let zoneShown = '', lastPrune = 0;
@@ -1518,9 +1821,14 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, now = performance.now();
   let mySpeed = 0;
   if (entered) {
-    mySpeed = movePlayer(dt);
+    stepMyAct(dt, now);
+    mySpeed = meRec && meRec.act === 'roll' ? 0 : movePlayer(dt);
     sendPresence(now, false);
-    const z = zoneName(me.x, me.z); if (z !== zoneShown) { zoneShown = z; $('zone').textContent = z; }
+    const b = CONF.boothAt(me.x, me.z);
+    if ((b ? b.id : '') !== (myBooth ? myBooth.id : '')) { myBooth = b; onBoothChange(); }
+    const z = b ? `${b.name} · 고해소 안` : zoneName(me.x, me.z); if (z !== zoneShown) { zoneShown = z; $('zone').textContent = z; }
+    const nb = OFF.nearBox(me.x, me.z, 1.6), nid = nb ? nb.id : '';
+    if (nid !== nearBoxId) { nearBoxId = nid; offerBtn.hidden = !nb; $('offer').hidden = !nb; if (nb) updateOfferHud(); }
   } else {
     cam.yaw = Math.sin(t * 0.1) * 0.22; cam.pitch = 0.3 + Math.sin(t * 0.07) * 0.08;
   }
@@ -1535,6 +1843,7 @@ function frame() {
     animAvatar(rec, Math.hypot(c.x - ox, c.z - oz) / Math.max(dt, 1e-3), dt, t, now);
   }
   if (mq && now - lastPrune > 1000) { lastPrune = now; pruneMq(now); }
+  OFF.update(dt);
 
   flameMat.size = 0.13 * (reduceMotion ? 1 : 0.9 + 0.1 * Math.sin(t * 13.7) * Math.sin(t * 7.3 + 1.2));
   renderer.render(scene, camera);
