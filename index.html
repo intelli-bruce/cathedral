@@ -64,6 +64,7 @@ button, input { font: inherit; color: inherit; }
 #badge .row { display: flex; align-items: center; gap: 8px; }
 #dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ash); flex: none; }
 #dot.on { background: var(--gilt); box-shadow: 0 0 8px var(--gilt); }
+#net { color: var(--ash); font-size: 12px; }
 #zone { font-family: var(--f-display); color: var(--ash); font-size: 12.5px; }
 #hint { top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); max-width: 400px; text-align: right;
   font-size: 12px; color: var(--vellum); line-height: 1.5; transition: opacity 1.2s; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.6); }
@@ -96,6 +97,7 @@ button, input { font: inherit; color: inherit; }
 
 <div id="badge" class="hud" hidden>
   <div class="row"><span id="dot"></span><span id="count">혼자 둘러보는 중입니다</span></div>
+  <div id="net"></div>
   <div id="zone">신랑</div>
 </div>
 <div id="hint" class="hud" hidden></div>
@@ -1221,10 +1223,17 @@ function refreshControls() {
   $('dot').classList.toggle('on', live);
   updateCount();
 }
+function netLabel() {
+  const m = netMode(), live = netLive();
+  if (m === 'room') return live ? 'claude.ai 방 연결' : 'claude.ai 방에 다시 연결하는 중…';
+  if (m === 'mq') return live ? `공개 연결 (서버 ${mqLiveCount()}곳)` : '공개 연결을 다시 시도하는 중…';
+  return connecting ? '연결하는 중…' : '연결 실패 · 혼자 둘러보는 중';
+}
 function updateCount() {
-  const live = netLive(), pending = connecting || (!!netMode() && !live), n = peopleCount();
+  const live = netLive(), pending = connecting || (!!netMode() && !live), n = peopleCount(), net = netLabel();
   $('count').textContent = live ? `지금 ${n}명이 성당에 있습니다` : (pending ? '함께 보기에 연결하는 중입니다…' : '혼자 둘러보는 중입니다');
-  $('entryCount').textContent = live ? `지금 ${n}명이 성당에 있습니다.` : (pending ? '함께 보기에 연결하는 중입니다…' : '함께 보기에 연결하지 못해 지금은 혼자 둘러보게 됩니다.');
+  $('net').textContent = net;
+  $('entryCount').textContent = live ? `지금 ${n}명이 성당에 있습니다. · ${net}` : (pending ? `함께 보기에 연결하는 중입니다… · ${net}` : `${net}입니다.`);
 }
 function nameFor(p) { return cleanText(p.presence && p.presence.nick, 20) || '순례자'; }
 let nameJob = 0;
@@ -1302,40 +1311,72 @@ async function connectNet() {
 }
 
 // --- public MQTT (used outside claude.ai) ---
+// Every broker below is joined at once and all of them stay open: we publish to every live one and listen on every live one,
+// so two people who can each reach only one of the brokers still meet whenever they share at least one.
 const MQ_P = 'brx-cathedral-v1/nd/';
 const MQ_BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'];
 const myId = (Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8)).replace(/[^a-z0-9]/g, '');
 const mqRate = new Map();
-let mqAll = { t: 0, n: 0 };   // inbound budget over all senders combined
+let mqAll = { t: 0, n: 0 };   // inbound budget over all senders combined (after de-duplication)
+const mqLastT = new Map();    // presence de-dup: sender id -> newest presence timestamp already handled
+const mqMids = new Map();     // chat/wave de-dup: small LRU of sender+mid
+const MQ_GLOBAL_BUDGET = 400, MQ_SENDER_BUDGET = 20, MQ_LRU = 200;
 const dec = new TextDecoder();
-function mqPub(sub, obj) { if (mq && mq.live) { try { mq.client.publish(MQ_P + sub, JSON.stringify(obj), { qos: 0, retain: false }); } catch (e) { /* drop */ } } }
-function tryBroker(lib, url) {
-  return new Promise((resolve) => {
-    let settled = false, client;
-    const opts = { clientId: 'nd_' + myId, clean: true, keepalive: 20, connectTimeout: 6000, reconnectPeriod: 3000, protocolVersion: 4,
-      will: { topic: MQ_P + 'bye/' + myId, payload: JSON.stringify({ id: myId }), qos: 0, retain: false } };
-    try { client = lib.connect(url, opts); } catch (e) { resolve(null); return; }
-    const timer = setTimeout(() => { if (settled) return; settled = true; try { client.end(true); } catch (e) { /* ignore */ } resolve(null); }, 7000);
-    client.on('error', () => {});
-    client.once('connect', () => { if (settled) return; settled = true; clearTimeout(timer); resolve(client); });
-  });
+const newMid = () => Math.random().toString(36).slice(2, 10);
+const mqLiveCount = () => (mq ? mq.clients.reduce((n, c) => n + (c.live ? 1 : 0), 0) : 0);
+function mqPub(sub, obj) {
+  if (!mq) return;
+  const body = JSON.stringify(obj);
+  for (const c of mq.clients) if (c.live) { try { c.client.publish(MQ_P + sub, body, { qos: 0, retain: false }); } catch (e) { /* drop */ } }
+}
+function mqSeenMid(key) {   // true if this chat/wave already arrived through another broker
+  if (mqMids.has(key)) { mqMids.delete(key); mqMids.set(key, 1); return true; }
+  mqMids.set(key, 1);
+  if (mqMids.size > MQ_LRU) mqMids.delete(mqMids.keys().next().value);
+  return false;
 }
 async function connectMqtt() {
   let lib = null;
   try { const mod = await import('https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.esm.js'); lib = mod.default && mod.default.connect ? mod.default : mod; } catch (e) { lib = null; }
   if (!lib || typeof lib.connect !== 'function') return;
-  for (const url of MQ_BROKERS) {
-    const client = await tryBroker(lib, url);
-    if (!client) continue;
-    mq = { client, live: true, lastSent: 0, lastP: null };
-    const subscribe = () => client.subscribe([MQ_P + 'p/+', MQ_P + 'bye/+', MQ_P + 'chat', MQ_P + 'wave'], { qos: 0 });
-    subscribe();
-    client.on('connect', () => { mq.live = true; subscribe(); refreshControls(); sendPresence(performance.now(), true); });
-    client.on('close', () => { if (mq) { mq.live = false; refreshControls(); } });
-    client.on('message', onMqMessage);
-    window.addEventListener('pagehide', () => { try { client.publish(MQ_P + 'bye/' + myId, JSON.stringify({ id: myId }), { qos: 0, retain: false }); client.end(); } catch (e) { /* leaving */ } });
+  const st = { clients: [], lastSent: 0, lastP: null, get live() { return this.clients.some((c) => c.live); } };
+  await new Promise((resolve) => {
+    let done = false, failed = 0;
+    const finish = () => { if (done) return; done = true; clearTimeout(timer); resolve(); };
+    const timer = setTimeout(finish, 7000);
+    for (const url of MQ_BROKERS) {
+      let client;
+      try {
+        client = lib.connect(url, { clientId: 'nd_' + myId, clean: true, keepalive: 20, connectTimeout: 6000, reconnectPeriod: 3000, protocolVersion: 4,
+          will: { topic: MQ_P + 'bye/' + myId, payload: JSON.stringify({ id: myId }), qos: 0, retain: false } });
+      } catch (e) { failed++; continue; }
+      const c = { client, url, live: false, everUp: false, failedOnce: false };
+      st.clients.push(c);
+      client.on('error', () => {});
+      client.on('connect', () => {
+        c.live = true; c.everUp = true;
+        client.subscribe([MQ_P + 'p/+', MQ_P + 'bye/+', MQ_P + 'chat', MQ_P + 'wave'], { qos: 0 });
+        if (!mq) mq = st;   // first broker up: switch to public mode now, the others join as they connect
+        refreshControls(); sendPresence(performance.now(), true);
+        finish();
+      });
+      client.on('close', () => {
+        c.live = false;
+        if (mq) refreshControls();
+        if (!c.everUp && !c.failedOnce) { c.failedOnce = true; if (++failed >= MQ_BROKERS.length) finish(); }
+      });
+      client.on('message', onMqMessage);
+    }
+    if (failed >= MQ_BROKERS.length) finish();
+  });
+  if (!mq) {   // nothing reachable: stop retrying so the claude.ai room (or solo mode) takes over cleanly
+    for (const c of st.clients) { try { c.client.end(true); } catch (e) { /* ignore */ } }
     return;
   }
+  window.addEventListener('pagehide', () => {
+    const body = JSON.stringify({ id: myId });
+    for (const c of st.clients) { try { if (c.live) c.client.publish(MQ_P + 'bye/' + myId, body, { qos: 0, retain: false }); c.client.end(); } catch (e) { /* leaving */ } }
+  });
 }
 function onMqMessage(topic, payload) {
   if (!payload || payload.length > 2048 || typeof topic !== 'string' || !topic.startsWith(MQ_P)) return;
@@ -1343,12 +1384,25 @@ function onMqMessage(topic, payload) {
   if (!d || typeof d !== 'object') return;
   const id = typeof d.id === 'string' ? d.id.replace(/[^a-z0-9]/gi, '').slice(0, 24) : '';
   if (!id || id === myId) return;
+  const sub = topic.slice(MQ_P.length), key = 'mq:' + id;
+  // de-duplicate first: the same message arrives once per broker and must not eat the rate budgets
+  if (sub.startsWith('p/')) {
+    const t = typeof d.t === 'number' && Number.isFinite(d.t) && Math.abs(d.t - Date.now()) < 864e5 ? d.t : null;   // absurd timestamps cannot poison the newest-t record
+    if (t !== null) {
+      const seen = mqLastT.get(id);
+      if (seen && t <= seen.t) return;
+      if (mqLastT.size > 2000) mqLastT.clear();
+      mqLastT.set(id, { t, at: performance.now() });
+    }
+  } else if (sub === 'chat' || sub === 'wave') {
+    const mid = typeof d.mid === 'string' ? d.mid.replace(/[^a-z0-9]/gi, '').slice(0, 16) : '';
+    if (mid && mqSeenMid(id + ':' + mid)) return;
+  }
   const now = performance.now();
   if (now - mqAll.t > 1000) mqAll = { t: now, n: 0 };
-  if (++mqAll.n > 60) return;
+  if (++mqAll.n > MQ_GLOBAL_BUDGET) return;
   let rl = mqRate.get(id); if (!rl || now - rl.t > 1000) { rl = { t: now, n: 0 }; mqRate.set(id, rl); }
-  if (++rl.n > 20) return;
-  const sub = topic.slice(MQ_P.length), key = 'mq:' + id;
+  if (++rl.n > MQ_SENDER_BUDGET) return;
   if (sub.startsWith('p/')) {
     if (sub.slice(2) !== id) return;
     const x = num(d.x, -26, 26), z = num(d.z, -64, 70), ry = num(d.ry, -10, 10);
@@ -1378,9 +1432,9 @@ function pruneMq(now) {
   let changed = false;
   for (const [key, rec] of others) if (rec.mq && now - rec.lastSeen > 5000) { removePeer(key); changed = true; }
   for (const [id, rl] of mqRate) if (now - rl.t > 10000) mqRate.delete(id);
+  for (const [id, s] of mqLastT) if (now - s.at > 60000) mqLastT.delete(id);
   if (changed) updateCount();
 }
-
 let lastSent = 0, lastP = null;
 function sendPresence(now, full) {
   if (!entered) return;
@@ -1407,7 +1461,7 @@ $('chatForm').addEventListener('submit', (e) => {
   chatInput.value = '';
   if (netMode() === 'room') {
     room.emit('chat', { text }).then(() => showBubble(meRec, text)).catch((err) => { if (err && err.code === 'not_permitted') { viewOnly = true; refreshControls(); waveBtn.disabled = true; } });
-  } else { mqPub('chat', { id: myId, text }); showBubble(meRec, text); logLine('나', text); }
+  } else { mqPub('chat', { id: myId, mid: newMid(), text }); showBubble(meRec, text); logLine('나', text); }
 });
 let waveCool = 0;
 waveBtn.addEventListener('click', () => {
@@ -1417,7 +1471,7 @@ waveBtn.addEventListener('click', () => {
   const m = netMode();
   if (m === 'room' && netLive() && !viewOnly) {
     room.emit('wave').catch((err) => { if (err && err.code === 'not_permitted') { viewOnly = true; waveBtn.disabled = true; refreshControls(); } });
-  } else if (m === 'mq' && netLive()) { mqPub('wave', { id: myId }); bell(hashStr(myId)); logLine(null, '손을 흔들었습니다.', true); }
+  } else if (m === 'mq' && netLive()) { mqPub('wave', { id: myId, mid: newMid() }); bell(hashStr(myId)); logLine(null, '손을 흔들었습니다.', true); }
   else { bell(hashStr('me')); logLine(null, '손을 흔들었습니다.', true); }
 });
 
