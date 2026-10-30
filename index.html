@@ -74,6 +74,7 @@ button, input { font: inherit; color: inherit; }
 #hint { top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); max-width: 400px; text-align: right;
   font-size: 12px; color: var(--vellum); line-height: 1.5; transition: opacity 1.2s; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.6); }
 #hint.fade { opacity: 0; }
+#lookHint { left: 50%; top: 24%; transform: translateX(-50%); max-width: calc(100vw - 24px); padding: 8px 14px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: 4px; font-size: 13px; text-align: center; pointer-events: none; }
 #log { left: calc(env(safe-area-inset-left, 0px) + 12px); bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); width: min(380px, calc(100vw - 24px));
   display: grid; gap: 4px; pointer-events: none; font-size: 13px; line-height: 1.45; }
 #log div { text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,.7); overflow-wrap: anywhere; transition: opacity 1.5s; }
@@ -112,6 +113,7 @@ body.coarse #log { width: min(380px, calc(100vw - 110px)); }
   <div id="offer" hidden></div>
 </div>
 <div id="hint" class="hud" hidden></div>
+<div id="lookHint" class="hud" hidden>화면을 클릭하면 마우스 시점으로 돌아갑니다 · M 끄기</div>
 <div id="log" class="hud" aria-live="polite" hidden></div>
 <div id="bar" class="hud" hidden>
   <form id="chatForm" autocomplete="off">
@@ -121,6 +123,7 @@ body.coarse #log { width: min(380px, calc(100vw - 110px)); }
   </form>
   <button id="waveBtn" class="btn" type="button">손 흔들기</button>
   <button id="offerBtn" class="btn" type="button" hidden>헌금하기</button>
+  <button id="lookBtn" class="btn" type="button" hidden></button>
 </div>
 <div id="acts" class="hud" hidden>
   <button id="jumpBtn" class="act" type="button">점프</button>
@@ -935,7 +938,7 @@ const CONF = buildConfessionals(THREE, scene, { darkWoodMat: M.darkWood });
 let coinDrops = 0;   // coins seen from other people (test read-out)
 const OFF = buildOffering(THREE, scene, {
   woodMat: M.darkWood, goldMat: M.gold,
-  onLand: (box) => { if (actx && bus && Math.hypot(box.x - me.x, box.z - me.z) < 14) OFF.playClink(actx, bus); },
+  onLand: (box) => { if (actx && bus && Math.hypot(box.x - me.x, box.z - me.z) < 14 && sndOk()) OFF.playClink(actx, bus); },
 });
 BLOCKS.push(...CONF.blocks, ...OFF.blocks);
 const BOOTH_IDS = new Set(CONF.booths.map((b) => b.id));
@@ -1010,6 +1013,31 @@ const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
 const touches = new Map(); let pinchD = 0;
 let mouseDrag = null;
 
+// desktop look mode: 'mouse' = pointer lock (cursor-free camera), falling back to hover look where lock is refused (sandboxed iframes); 'drag' = click-and-drag
+let lookMode = store.get('cathedral.look') === 'drag' ? 'drag' : 'mouse', lockFailed = false, everLocked = false;
+const mouseLook = () => !coarse && lookMode === 'mouse';
+const locked = () => document.pointerLockElement === canvas;
+function reLock() {
+  if (!mouseLook() || locked()) return;
+  try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* refused */ }
+}
+function updateLookUi() {
+  if (coarse) return;
+  $('lookHint').hidden = !(entered && mouseLook() && !locked() && !lockFailed && !typing());
+  $('lookBtn').textContent = lookMode === 'mouse' ? '마우스 시점 켜짐' : '마우스 시점 꺼짐';
+}
+function toggleLook() {
+  if (coarse) return;
+  lookMode = lookMode === 'mouse' ? 'drag' : 'mouse'; store.set('cathedral.look', lookMode); mouseDrag = null;
+  if (lookMode === 'mouse') reLock(); else if (locked()) document.exitPointerLock();
+  updateLookUi();
+}
+document.addEventListener('pointerlockchange', () => { if (locked()) { everLocked = true; lockFailed = false; } updateLookUi(); });
+document.addEventListener('pointerlockerror', () => { if (!everLocked) lockFailed = true; updateLookUi(); });
+document.addEventListener('mousemove', (e) => {
+  if (!entered || !mouseLook() || (e.movementX === 0 && e.movementY === 0)) return;
+  if (locked() || (lockFailed && e.target === canvas && !typing())) orbit(e.movementX, e.movementY, 0.0045);
+});
 function orbit(dx, dy, s) { cam.yaw -= dx * s; cam.pitch = clamp(cam.pitch + dy * s * 0.85, -0.5, 1.15); }
 function setStick(show, x, y) { const s = $('stick'); s.hidden = !show; if (show) { s.style.left = x + 'px'; s.style.top = y + 'px'; } }
 canvas.addEventListener('pointerdown', (e) => {
@@ -1018,7 +1046,8 @@ canvas.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'touch') {
     if (e.clientX < window.innerWidth * 0.45 && joy.id === null) { joy.id = e.pointerId; joy.ox = e.clientX; joy.oy = e.clientY; joy.x = joy.y = 0; setStick(true, e.clientX, e.clientY); $('knob').style.transform = ''; }
     else { touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (touches.size === 2) { const [a, b] = [...touches.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); } }
-  } else { mouseDrag = { x: e.clientX, y: e.clientY }; }
+  } else if (mouseLook()) { reLock(); return; }   // a lock click does nothing else
+  else { mouseDrag = { x: e.clientX, y: e.clientY }; }
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -1046,14 +1075,15 @@ canvas.addEventListener('wheel', (e) => { if (!entered) return; e.preventDefault
 const typing = () => document.activeElement && (document.activeElement.tagName === 'INPUT');
 window.addEventListener('keydown', (e) => {
   if (!entered) return;
-  if (typing()) { if (e.key === 'Escape') document.activeElement.blur(); return; }
-  if (e.key === 'Enter') { const ci = $('chatInput'); if (!ci.disabled) { e.preventDefault(); ci.focus(); } return; }
+  if (typing()) { if (e.key === 'Escape') { document.activeElement.blur(); updateLookUi(); reLock(); } return; }
+  if (e.key === 'Enter') { const ci = $('chatInput'); if (!ci.disabled) { e.preventDefault(); if (locked()) document.exitPointerLock(); ci.focus(); } return; }
   keys.add(e.code);
   if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
   if (e.repeat) return;
   if (e.code === 'Space') startAct('jump');
   else if (e.code === 'KeyC') startAct('roll');
   else if (e.code === 'KeyE') interact();
+  else if (e.code === 'KeyM') toggleLook();
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
@@ -1442,6 +1472,17 @@ function mqPub(sub, obj) {
   const body = JSON.stringify(obj);
   for (const c of mq.clients) if (c.live) { try { c.client.publish(MQ_P + sub, body, { qos: 0, retain: false }); } catch (e) { /* drop */ } }
 }
+const evtSeen = new Map();
+function evtOk(key, kind, ms) {   // per-sender cooldown for network events; bounded map
+  const now = performance.now(), k = kind + ':' + key;
+  if (now - (evtSeen.get(k) || -1e9) < ms) return false;
+  if (evtSeen.size > 1000) evtSeen.clear();
+  evtSeen.set(k, now); return true;
+}
+let netLogT = -1e9;
+const netLogOk = () => { const n = performance.now(); if (n - netLogT < 80) return false; netLogT = n; return true; };   // global budget for network-originated log lines
+let sndT = -1e9;
+const sndOk = () => { const n = performance.now(); if (n - sndT < 250) return false; sndT = n; return true; };   // global cooldown for remote wave chime / coin clink
 function mqSeenMid(key) {   // true if this chat/wave already arrived through another broker
   if (mqMids.has(key)) { mqMids.delete(key); mqMids.set(key, 1); return true; }
   mqMids.set(key, 1);
@@ -1470,7 +1511,11 @@ async function connectMqtt() {
         c.live = true; c.everUp = true;
         client.subscribe([MQ_P + 'p/+', MQ_P + 'bye/+', MQ_P + 'chat', MQ_P + 'wave', MQ_P + 'booth/+', MQ_P + 'offer', MQ_P + 'offer/total'], { qos: 0 });
         if (namesTopics.size) client.subscribe([...namesTopics], { qos: 0 });
-        if (!mq) { mq = st; startNames(); }   // first broker up: switch to public mode now, the others join as they connect
+        if (!mq) {   // first broker up: switch to public mode now, the others join as they connect
+          mq = st; startNames();
+          if (done) logLine(null, '공개 연결이 되었습니다. 이제 함께 볼 수 있습니다.', true);   // came up after the initial wait: reconnectPeriod kept trying
+          if (entered && nickState === 'pending') scheduleClaimRetry();
+        }
         refreshControls(); sendPresence(performance.now(), true);
         finish();
       });
@@ -1486,7 +1531,7 @@ async function connectMqtt() {
     }
     if (failed >= MQ_BROKERS.length) finish();
   });
-  if (!mq) {   // nothing reachable: stop retrying so the claude.ai room (or solo mode) takes over cleanly
+  if (!mq && window.claude && typeof window.claude.use === 'function') {   // nothing reachable and the claude.ai room can take over: stop retrying; otherwise keep reconnecting in the background
     for (const c of st.clients) { try { c.client.end(true); } catch (e) { /* ignore */ } }
     return;
   }
@@ -1551,10 +1596,10 @@ function onMqMessage(topic, payload) {
   const sub = topic.slice(MQ_P.length), key = 'mq:' + id;
   // de-duplicate first: the same message arrives once per broker and must not eat the rate budgets
   if (sub.startsWith('p/')) {
-    const t = typeof d.t === 'number' && Number.isFinite(d.t) && Math.abs(d.t - Date.now()) < 864e5 ? d.t : null;   // absurd timestamps cannot poison the newest-t record
+    const t = typeof d.t === 'number' && Number.isFinite(d.t) && Math.abs(d.t - Date.now()) < 3e5 ? d.t : null;   // only ±5 min: a forged far-future t cannot poison the newest-t record
     if (t !== null) {
       const seen = mqLastT.get(id);
-      if (seen && t <= seen.t) return;
+      if (seen && t <= seen.t && seen.t - t < 3000) return;   // duplicate from the other broker; a bigger step back is a restart/clock jump
       if (mqLastT.size > 2000) mqLastT.clear();
       mqLastT.set(id, { t, at: performance.now() });
     }
@@ -1590,25 +1635,25 @@ function onMqMessage(topic, payload) {
     if (fresh) updateCount();
   } else if (sub.startsWith('bye/')) {
     if (sub.slice(4) !== id) return;
-    const r = others.get(key); if (r) r.lastSeen = Math.min(r.lastSeen, now - 4500);   // let the 5 s prune drop it; a live presence refutes a spoofed bye
+    const r = others.get(key); if (r) r.byeAt = now;   // only a mark: pruneMq drops it after 2.5 s unless a live presence follows
   } else if (sub === 'chat') {
     const rec = others.get(key); if (!rec) return;   // unknown senders cannot flood the log
-    const text = cleanText(d.text, 120); if (!text) return;
+    const text = cleanText(d.text, 120); if (!text || !evtOk(id, 'chat', 400)) return;
     showBubble(rec, text);
-    logLine(rec.name || '순례자', text);
+    if (netLogOk()) logLine(rec.name || '순례자', text);
   } else if (sub === 'wave') {
     const rec = others.get(key); if (!rec) return;
     rec.waveT = 0;
-    bell(hashStr(id));
-    logLine(null, `${rec.name || '순례자'} 님이 손을 흔들었습니다.`, true);
+    if (sndOk()) bell(hashStr(id));
+    if (netLogOk()) logLine(null, `${rec.name || '순례자'} 님이 손을 흔들었습니다.`, true);
   } else if (sub.startsWith('booth/')) {   // only people inside that same booth hear it; never the public log
     const bid = sub.slice(6); if (!BOOTH_IDS.has(bid)) return;
     const rec = others.get(key); if (!rec) return;
     if (!myBooth || myBooth.id !== bid) return;
     const sb = CONF.boothAt(rec.cur.x, rec.cur.z); if (!sb || sb.id !== bid) return;   // sender must stand in that booth too
-    const text = cleanText(d.text, 120); if (!text) return;
+    const text = cleanText(d.text, 120); if (!text || !evtOk(id, 'booth', 400)) return;
     showBubble(rec, text);
-    logLine('🕯 ' + (rec.name || '순례자'), text);
+    if (netLogOk()) logLine('🕯 ' + (rec.name || '순례자'), text);
   } else if (sub === 'offer') {
     const rec = others.get(key); if (!rec) return;
     if (!BOX_IDS.has(d.box) || !offerRateOk(key)) return;
@@ -1617,7 +1662,7 @@ function onMqMessage(topic, payload) {
 }
 function pruneMq(now) {
   let changed = false;
-  for (const [key, rec] of others) if (rec.mq && now - rec.lastSeen > 5000) { removePeer(key); changed = true; }
+  for (const [key, rec] of others) if (rec.mq && (now - rec.lastSeen > 5000 || (rec.byeAt > rec.lastSeen && now - rec.byeAt > 2500))) { removePeer(key); changed = true; }
   for (const [id, rl] of mqRate) if (now - rl.t > 10000) mqRate.delete(id);
   for (const [id, s] of mqLastT) if (now - s.at > 60000) mqLastT.delete(id);
   if (changed) updateCount();
@@ -1658,6 +1703,9 @@ $('chatForm').addEventListener('submit', (e) => {
   } else if (booth) { mqPub('booth/' + booth.id, { id: myId, mid: newMid(), text }); showBubble(meRec, text); logLine('🕯 나', text); }
   else { mqPub('chat', { id: myId, mid: newMid(), text }); showBubble(meRec, text); logLine('나', text); }
 });
+$('chatForm').addEventListener('submit', () => { if (mouseLook()) { chatInput.blur(); updateLookUi(); reLock(); } });   // back to looking around after sending
+chatInput.addEventListener('focus', updateLookUi); chatInput.addEventListener('blur', updateLookUi);
+if (!coarse) { $('lookBtn').hidden = false; $('lookBtn').addEventListener('click', () => { toggleLook(); $('lookBtn').blur(); }); updateLookUi(); }
 let waveCool = 0;
 waveBtn.addEventListener('click', () => {
   initAudio();
@@ -1774,13 +1822,14 @@ $('entryForm').addEventListener('submit', async (e) => {
   if (entering || entered) return;
   initAudio();
   showNickErr('');
+  reLock();   // from the 입장하기 click itself (user gesture); released again below if entry fails
   const nick = myNick();
   if (!nick || netMode() === 'room') nickState = 'none';   // empty: 순례자 without a claim; claude.ai room: profile names
   else if (mq && mq.live) {
     entering = true; enterBtn.disabled = true; enterBtn.textContent = '이름을 확인하는 중…';
     const r = await Promise.race([tryClaim(), new Promise((res) => setTimeout(() => res({ status: 'timeout' }), 4000))]);   // late result is ignored; background retry reclaims
     entering = false; enterBtn.disabled = false; enterBtn.textContent = '입장하기';
-    if (NICK_MSG[r.status]) { showNickErr(NICK_MSG[r.status]); $('nick').focus(); return; }
+    if (NICK_MSG[r.status]) { if (locked()) document.exitPointerLock(); showNickErr(NICK_MSG[r.status]); $('nick').focus(); return; }
     nickState = r.status === 'ok' ? 'ok' : r.status === 'unsupported' ? 'none' : 'pending';
   } else nickState = 'pending';   // no broker yet: enter now, show "(확인 전)", claim in the background
   store.set('cathedral.nick', nick); store.set('cathedral.robe', myColor); store.set('cathedral.char', myChar);
@@ -1788,10 +1837,11 @@ $('entryForm').addEventListener('submit', async (e) => {
   ensureMe(); refreshMyLabel();
   if (nickState === 'ok') onClaimed(); else if (nickState === 'pending') scheduleClaimRetry();
   $('entry').hidden = true;
+  updateLookUi();
   for (const id of ['badge', 'hint', 'log', 'bar']) $(id).hidden = false;
   $('acts').hidden = !coarse;
   updateOfferHud();
-  $('hint').textContent = coarse ? '왼쪽 엄지로 걷기 · 오른쪽 끌어 시점 · 두 손가락 거리 · 오른쪽 아래 점프·구르기' : 'WASD 걷기 · Shift 빠르게 · Space 점프 · C 구르기 · E 상호작용 · 끌어서 시점 · 휠 거리 · Enter 대화';
+  $('hint').textContent = coarse ? '왼쪽 엄지로 걷기 · 오른쪽 끌어 시점 · 두 손가락 거리 · 오른쪽 아래 점프·구르기' : 'WASD 걷기 · Shift 빠르게 · Space 점프 · C 구르기 · E 상호작용 · 마우스로 시점 · 휠 거리 · Enter 대화 · Esc 마우스 풀기 · M 시점 방식';
   setTimeout(() => $('hint').classList.add('fade'), 9000);
   canvas.focus({ preventScroll: true });
   sendPresence(performance.now(), true);
@@ -1808,7 +1858,7 @@ if (location.hostname === '127.0.0.1') {   // local test read-out only; absent o
   window.__nd = {
     me, cam, others, myId, booths: CONF.booths, boxes: OFF.boxes,
     get meRec() { return meRec; }, get myBooth() { return myBooth; }, get offerTotal() { return offerTotal; }, get coinDrops() { return coinDrops; },
-    get nickState() { return nickState; }, get mySig() { return mySig; }, get mode() { return netMode(); }, get live() { return netLive(); },
+    get nickState() { return nickState; }, get mySig() { return mySig; }, get mode() { return netMode(); }, get look() { return lookMode; }, get hover() { return lockFailed; }, get locked() { return locked(); }, get live() { return netLive(); },
     setPose(x, z, ry, yaw, pitch, dist) { me.x = x; me.z = z; me.ry = ry; cam.yaw = yaw; cam.pitch = pitch; cam.dist = dist; cam.cur = dist; cam.tx = x; cam.tz = z; },
     act: (k) => startAct(k), offer: () => doOffer(), interact: () => interact(),
     forge(o) { testForge = o; sendPresence(performance.now(), true); },
