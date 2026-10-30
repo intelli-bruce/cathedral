@@ -1,0 +1,1495 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>*,*::before,*::after{box-sizing:border-box}html,body{margin:0}</style>
+</head>
+<body>
+<title>노트르담 산책</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-bleed 3D interior; quiet HUD pinned to the corners; one entry card over the scene. Single dark look by choice (HUD over a lit stone interior). */
+:root {
+  --night: #15110d;
+  --vellum: #f1e8d6;
+  --gilt: #d6a24a;
+  --lapis: #4a6cc4;
+  --ash: #b3a894;
+  --panel: rgba(21, 17, 13, 0.80);
+  --panel-soft: rgba(21, 17, 13, 0.58);
+  --line: rgba(241, 232, 214, 0.18);
+  --f-display: "Gowun Batang", "Nanum Myeongjo", "AppleMyungjo", serif;
+  --f-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--night); color: var(--vellum); font-family: var(--f-ui); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; cursor: grab; }
+#scene:active { cursor: grabbing; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--gilt); outline-offset: 2px; }
+
+/* entry */
+#entry { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 16px);
+  background: radial-gradient(ellipse at 50% 40%, rgba(21, 17, 13, 0.1), rgba(21, 17, 13, 0.7)); }
+.card { width: 100%; max-width: 430px; display: grid; gap: 18px; padding: 28px 26px 24px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.eyebrow { font-size: 12px; letter-spacing: 0.14em; color: var(--gilt); }
+.card h1 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 8vw, 40px); line-height: 1.15; text-wrap: balance; letter-spacing: 0.02em; }
+.card p { margin: 0; line-height: 1.65; color: var(--ash); font-size: 14px; }
+.card p.lead { color: var(--vellum); }
+.field { display: grid; gap: 8px; }
+.field label, .field .lab { font-size: 13px; color: var(--vellum); }
+#nick { width: 100%; box-sizing: border-box; padding: 11px 12px; background: rgba(241, 232, 214, 0.06); border: 1px solid var(--line); border-radius: 4px; }
+#nick::placeholder { color: var(--ash); }
+.robes { display: flex; flex-wrap: wrap; gap: 8px; }
+.robe { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px 6px 7px; border: 1px solid var(--line); border-radius: 999px; background: transparent; cursor: pointer; font-size: 13px; color: var(--ash); }
+.robe i { width: 14px; height: 14px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0,0,0,.35); }
+.robe[aria-pressed="true"] { border-color: var(--gilt); color: var(--vellum); background: rgba(214, 162, 74, 0.12); }
+#enterBtn { padding: 13px 16px; border: 0; border-radius: 4px; background: var(--gilt); color: #1b130a; font-weight: 600; font-size: 15px; cursor: pointer; }
+#enterBtn:hover { filter: brightness(1.07); }
+.fine { font-size: 12.5px; color: var(--ash); line-height: 1.6; }
+#entryCount { color: var(--vellum); }
+
+/* HUD */
+.hud { position: fixed; z-index: 10; }
+#badge { top: calc(env(safe-area-inset-top, 0px) + 12px); left: calc(env(safe-area-inset-left, 0px) + 12px);
+  display: grid; gap: 2px; padding: 8px 12px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: 4px; font-size: 13px; max-width: calc(100vw - 120px); }
+#badge .row { display: flex; align-items: center; gap: 8px; }
+#dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ash); flex: none; }
+#dot.on { background: var(--gilt); box-shadow: 0 0 8px var(--gilt); }
+#zone { font-family: var(--f-display); color: var(--ash); font-size: 12.5px; }
+#hint { top: calc(env(safe-area-inset-top, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); max-width: 400px; text-align: right;
+  font-size: 12px; color: var(--vellum); line-height: 1.5; transition: opacity 1.2s; text-shadow: 0 1px 3px #000, 0 0 6px rgba(0,0,0,.6); }
+#hint.fade { opacity: 0; }
+#log { left: calc(env(safe-area-inset-left, 0px) + 12px); bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); width: min(380px, calc(100vw - 24px));
+  display: grid; gap: 4px; pointer-events: none; font-size: 13px; line-height: 1.45; }
+#log div { text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,.7); overflow-wrap: anywhere; transition: opacity 1.5s; }
+#log div.old { opacity: 0.0; }
+#log b { color: var(--gilt); font-weight: 600; margin-right: 6px; }
+#log .sys { color: var(--vellum); opacity: 0.85; }
+#bar { left: 0; right: 0; bottom: 0; display: flex; gap: 8px; align-items: center;
+  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-block: 10px calc(env(safe-area-inset-bottom, 0px) + 12px); pointer-events: none; }
+#bar > * { pointer-events: auto; }
+#chatForm { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; max-width: 520px; }
+#chatInput { flex: 1 1 auto; min-width: 0; padding: 9px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; }
+#chatInput::placeholder { color: var(--ash); }
+#chatInput:disabled { opacity: 0.75; }
+.btn { padding: 9px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 14px; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+#waveBtn { border-color: rgba(214, 162, 74, 0.5); }
+#stick { position: fixed; z-index: 9; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; border: 1px solid var(--line); background: rgba(241,232,214,.08); pointer-events: none; }
+#knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(214,162,74,.45); border: 1px solid rgba(214,162,74,.8); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 560px) { #hint { max-width: 170px; } #sendBtn { display: none; } }
+@media (prefers-reduced-motion: reduce) { #hint, #log div { transition: none; } }
+</style>
+
+<canvas id="scene" tabindex="0" aria-label="노트르담 대성당 실내를 본뜬 3D 화면"></canvas>
+
+<div id="badge" class="hud" hidden>
+  <div class="row"><span id="dot"></span><span id="count">혼자 둘러보는 중입니다</span></div>
+  <div id="zone">신랑</div>
+</div>
+<div id="hint" class="hud" hidden></div>
+<div id="log" class="hud" aria-live="polite" hidden></div>
+<div id="bar" class="hud" hidden>
+  <form id="chatForm" autocomplete="off">
+    <label class="sr" for="chatInput">대화</label>
+    <input id="chatInput" maxlength="120" placeholder="연결되면 대화할 수 있습니다" disabled>
+    <button id="sendBtn" class="btn" type="submit" disabled>보내기</button>
+  </form>
+  <button id="waveBtn" class="btn" type="button">손 흔들기</button>
+</div>
+<div id="stick" hidden><div id="knob"></div></div>
+
+<div id="entry">
+  <form class="card" id="entryForm" autocomplete="off">
+    <div class="eyebrow">함께 걷는 가상 성당</div>
+    <h1>노트르담 산책</h1>
+    <p class="lead">파리 노트르담 대성당 실내를 본떠 만든 가상 공간입니다.</p>
+    <p>이 링크를 연 사람들이 같은 신랑을 함께 걷습니다. 서로의 모습이 보이고, 짧은 인사를 나눌 수 있습니다.</p>
+    <div class="field">
+      <label for="nick">부를 이름 (선택)</label>
+      <input id="nick" maxlength="20" placeholder="비워 두면 계정 이름이나 '순례자'로 보입니다">
+    </div>
+    <div class="field">
+      <span class="lab" id="robeLab">옷 색</span>
+      <div class="robes" id="robes" role="group" aria-labelledby="robeLab"></div>
+    </div>
+    <button id="enterBtn" type="submit">입장하기</button>
+    <div class="fine"><span id="entryCount">연결을 확인하고 있습니다…</span><br><span id="entryHelp">WASD로 걷고(Shift는 빠르게) 마우스를 끌어 시점을 돌립니다. 휠로 카메라 거리를 조절합니다.</span></div>
+  </form>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+// ---------- small helpers ----------
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const wrapA = (a) => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+const r2 = (v) => Math.round(v * 100) / 100;
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } },
+};
+const INVIS = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff\ue000-\uf8ff]/g;
+function cleanText(s, max) { return typeof s === 'string' ? s.replace(INVIS, '').trim().slice(0, max) : ''; }
+function num(v, a, b) { return (typeof v === 'number' && Number.isFinite(v)) ? clamp(v, a, b) : null; }
+function rng(seed) { let s = (seed >>> 0) || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+const coarse = window.matchMedia('(pointer: coarse)').matches;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// pointed (gothic) arch: half-width a, rise above springing
+function archR(a, rise) { return (a * a + rise * rise) / (2 * a); }
+function profH(a, rise, x) { x = Math.abs(x); if (x >= a) return 0; const r = archR(a, rise), cx = a - r, d = x - cx; return Math.sqrt(Math.max(0, r * r - d * d)); }
+function profPts(a, rise, n) {
+  const r = archR(a, rise), cx = a - r, ta = Math.acos(clamp(-cx / r, -1, 1)), R = [];
+  for (let k = 0; k <= n; k++) { const t = ta * k / n; R.push([cx + r * Math.cos(t), r * Math.sin(t)]); }
+  const out = [];
+  for (let k = 0; k <= n; k++) out.push([-R[k][0], R[k][1]]);
+  for (let k = n - 1; k >= 0; k--) out.push([R[k][0], R[k][1]]);
+  return out;
+}
+
+// ---------- robe colours ----------
+const ROBES = [
+  { name: '백색', hex: '#e9e2d0' }, { name: '홍색', hex: '#a3262a' }, { name: '녹색', hex: '#2f6e45' },
+  { name: '자색', hex: '#5a2f80' }, { name: '청색', hex: '#2c4f9e' }, { name: '금색', hex: '#c4952f' },
+];
+const HEX = /^#[0-9a-f]{6}$/i;
+const ROBE_HEX = new Set(ROBES.map((r) => r.hex));   // only palette colours are accepted from the network
+
+// ---------- renderer / scene ----------
+const canvas = $('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !coarse, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse ? 1.4 : 1.6));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#3a3128');
+scene.fog = new THREE.FogExp2('#d8cbb2', 0.0042);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 280);
+camera.rotation.order = 'YXZ';
+
+// ---------- plan, in metres (x: north − / south +, z: east − / west +; 1 unit = 1 m) ----------
+const A = 6.5;                    // nave & choir pier line (13 m central vessel)
+const X1 = 12.4, X2 = 18.3;       // pier lines between the double aisles (5.9 m each)
+const XC = 23.3, RC = 22.3;       // side-chapel outer wall, radiating-chapel outer radius
+const ZW = 67, ZT = 7, ZA = -38.5, XT = 24;  // west wall, transept half-width (14 m), apse centre, transept end (48 m)
+const SP = 23.5, CR = 33, LUN = 30;          // high vault springing, crown (33 m), formeret apex
+const ARC_SP = 7.2;                          // great arcade springing
+const ISP = 6.6, ICR = 10.5, OSP = 6.4, OCR = 10.1, CSP = 6.0, CCR = 9.4; // inner aisle, outer aisle, chapels
+const NAVE_Z = []; for (let k = 0; k <= 10; k++) NAVE_Z.push(ZT + 6 * k);       // 10 bays, 7..67
+const CHOIR_Z = [-7, -14.875, -22.75, -30.625, ZA];                             // 4 choir bays
+const PHI_APSE = []; for (let k = 0; k <= 5; k++) PHI_APSE.push(Math.PI * k / 5);   // 5-sided hemicycle
+const polar = (r, phi) => [r * Math.cos(phi), ZA - r * Math.sin(phi)];
+
+// ---------- procedural textures ----------
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; }
+  t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  return t;
+}
+function speckle(g, w, h, n, rnd, alpha) {
+  for (let i = 0; i < n; i++) { const v = rnd() < 0.5 ? 0 : 255; g.fillStyle = `rgba(${v},${v},${v},${alpha * rnd()})`; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 1 + rnd() * 2); }
+}
+// blonde limestone, ashlar courses
+const stoneTex = canvasTex(512, 512, (g, w, h) => {
+  const rnd = rng(7); g.fillStyle = '#d9c9a8'; g.fillRect(0, 0, w, h);
+  const rows = 8, rh = h / rows;
+  for (let r = 0; r < rows; r++) {
+    const off = (r % 2) * 80;
+    for (let x = -off; x < w; x += 160) { g.fillStyle = `hsl(${38 + rnd() * 6}, ${30 + rnd() * 10}%, ${76 + rnd() * 8}%)`; g.fillRect(x + 1.5, r * rh + 1.5, 157, rh - 3); }
+  }
+  speckle(g, w, h, 7000, rnd, 0.07);
+  g.fillStyle = 'rgba(140,118,84,0.45)';
+  for (let r = 0; r <= rows; r++) g.fillRect(0, r * rh - 1, w, 2);
+  for (let r = 0; r < rows; r++) { const off = (r % 2) * 80; for (let x = -off; x < w; x += 160) g.fillRect(x - 1, r * rh, 2, rh); }
+}, true);
+const vaultTex = canvasTex(256, 256, (g, w, h) => {
+  const rnd = rng(11); g.fillStyle = '#e2d4b6'; g.fillRect(0, 0, w, h);
+  for (let r = 0; r < 6; r++) for (let x = 0; x < w; x += 64) { g.fillStyle = `hsl(40, ${28 + rnd() * 8}%, ${80 + rnd() * 6}%)`; g.fillRect(x + (r % 2) * 32, r * 43, 63, 42); }
+  speckle(g, w, h, 3000, rnd, 0.06);
+  g.fillStyle = 'rgba(150,128,96,0.28)'; for (let r = 0; r <= 6; r++) g.fillRect(0, r * 43 - 1, w, 1.5);
+}, true);
+// 19th-century diagonal chequer of white limestone and black marble
+const floorTex = canvasTex(512, 512, (g, w, h) => {
+  const rnd = rng(3), a = 128 / Math.SQRT2;
+  g.save(); g.rotate(Math.PI / 4);
+  for (let i = -8; i <= 8; i++) for (let j = -8; j <= 8; j++) {
+    const dark = ((i + j) % 2 + 2) % 2 === 1;
+    g.fillStyle = dark ? `hsl(20, 8%, ${15 + rnd() * 5}%)` : `hsl(42, 24%, ${82 + rnd() * 6}%)`;
+    g.fillRect(i * a, j * a, a, a);
+    g.strokeStyle = dark ? 'rgba(255,255,255,0.07)' : 'rgba(120,100,70,0.16)'; g.lineWidth = 1;
+    for (let v = 0; v < 2; v++) { g.beginPath(); let x = i * a + rnd() * a, y = j * a; g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += (rnd() - 0.5) * 24; y += a / 5; g.lineTo(x, y); } g.stroke(); }
+  }
+  g.restore();
+  speckle(g, w, h, 4000, rnd, 0.06);
+  g.save(); g.rotate(Math.PI / 4); g.strokeStyle = 'rgba(70,58,44,0.55)'; g.lineWidth = 2;
+  for (let i = -8; i <= 8; i++) { g.beginPath(); g.moveTo(i * a, -8 * a); g.lineTo(i * a, 8 * a); g.stroke(); g.beginPath(); g.moveTo(-8 * a, i * a); g.lineTo(8 * a, i * a); g.stroke(); }
+  g.restore();
+}, true);
+
+// stained glass
+const LEAD = '#17110c', TRACERY = '#5e5446';
+function pointedPath(g, x, y, w, h, sf) { // rectangle with pointed head; (x, y) top-left; sf = head height / h
+  const a = w / 2, rise = h * sf, spring = y + rise;
+  g.moveTo(x, y + h); g.lineTo(x, spring);
+  for (const [px, py] of profPts(a, rise, 16).slice(1)) g.lineTo(x + a + px, spring - py);
+  g.lineTo(x + w, y + h); g.closePath();
+}
+function mosaic(g, x, y, w, h, pal, rnd, cols, rows, jit) {
+  const P = [];
+  for (let j = 0; j <= rows; j++) { P.push([]); for (let i = 0; i <= cols; i++) { const edge = i === 0 || i === cols || j === 0 || j === rows; P[j].push([x + i * w / cols + (edge ? 0 : (rnd() - 0.5) * jit), y + j * h / rows + (edge ? 0 : (rnd() - 0.5) * jit)]); } }
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    g.fillStyle = pal[Math.floor(rnd() * pal.length)];
+    g.beginPath(); g.moveTo(...P[j][i]); g.lineTo(...P[j][i + 1]); g.lineTo(...P[j + 1][i + 1]); g.lineTo(...P[j + 1][i]); g.closePath(); g.fill();
+    g.strokeStyle = LEAD; g.lineWidth = 1.6; g.stroke();
+  }
+}
+function medallions(g, cx, ys, R, pal) {
+  for (const cy of ys) {
+    g.fillStyle = pal[0]; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+    for (let k = 0; k < 6; k++) { g.fillStyle = pal[1 + (k % 3)]; g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R - 4, k * TAU / 6, (k + 1) * TAU / 6); g.closePath(); g.fill(); g.strokeStyle = LEAD; g.lineWidth = 1.5; g.stroke(); }
+    g.lineWidth = 3; g.strokeStyle = LEAD; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
+  }
+}
+// clerestory window: two lancets + oculus inside a pointed frame
+function clereTex(pal, seed, rich) {
+  return canvasTex(128, 384, (g, w, h) => {
+    const rnd = rng(seed);
+    g.save(); g.beginPath(); pointedPath(g, 2, 2, w - 4, h - 4, 0.41); g.clip();
+    g.fillStyle = TRACERY; g.fillRect(0, 0, w, h);
+    for (const lx of [11, 67]) {
+      g.save(); g.beginPath(); pointedPath(g, lx, 146, 50, 234, 0.2); g.clip();
+      mosaic(g, lx, 146, 50, 234, pal, rnd, 4, 16, rich ? 7 : 9);
+      if (rich) medallions(g, lx + 25, [205, 270, 335], 18, [pal[3], pal[0], pal[5], pal[1]]);
+      g.restore();
+    }
+    g.save(); g.beginPath(); g.arc(64, 90, 34, 0, TAU); g.clip(); g.fillStyle = LEAD; g.fillRect(20, 50, 90, 90);
+    for (let k = 0; k < 8; k++) { g.fillStyle = pal[(k * 3 + seed) % pal.length]; g.beginPath(); g.arc(64 + Math.cos(k * TAU / 8) * 18, 90 + Math.sin(k * TAU / 8) * 18, 12, 0, TAU); g.fill(); g.strokeStyle = LEAD; g.lineWidth = 2; g.stroke(); }
+    g.fillStyle = pal[3]; g.beginPath(); g.arc(64, 90, 9, 0, TAU); g.fill();
+    g.restore();
+    g.restore();
+    g.strokeStyle = '#3e372d'; g.lineWidth = 4; g.beginPath(); pointedPath(g, 3, 3, w - 6, h - 6, 0.41); g.stroke();
+  });
+}
+// 1960s non-figurative grisaille lancet (chapels, aisles)
+function grisTex(seed) {
+  return canvasTex(96, 320, (g, w, h) => {
+    const rnd = rng(seed), pal = ['#dcd6c2', '#d2d8cb', '#e0d3b4', '#c8d0d2', '#d8d0c0', '#cfd4c0', '#bcc8d4', '#e4c98c', '#a9bfd6', '#d6b0a0'];
+    g.save(); g.beginPath(); pointedPath(g, 2, 2, w - 4, h - 4, 0.18); g.clip();
+    g.fillStyle = LEAD; g.fillRect(0, 0, w, h);
+    const s = 16;
+    for (let j = -2; j < h / s + 2; j++) for (let i = -2; i < w / s + 2; i++) {
+      const cx = i * s + (j % 2) * s / 2, cy = j * s * 0.75;
+      const p = rnd(); g.fillStyle = p < 0.84 ? pal[Math.floor(rnd() * 6)] : pal[6 + Math.floor(rnd() * 4)];
+      g.beginPath(); g.moveTo(cx, cy - s * 0.5); g.lineTo(cx + s * 0.5, cy); g.lineTo(cx, cy + s * 0.5); g.lineTo(cx - s * 0.5, cy); g.closePath(); g.fill();
+      g.strokeStyle = LEAD; g.lineWidth = 1.4; g.stroke();
+    }
+    g.restore();
+    g.strokeStyle = '#4a4236'; g.lineWidth = 4; g.beginPath(); pointedPath(g, 3, 3, w - 6, h - 6, 0.18); g.stroke();
+  });
+}
+// rose windows
+function roseTexture(S, cfg) {
+  return canvasTex(S, S, (g) => {
+    const c = S / 2, R = S / 2 - 6, rnd = rng(cfg.seed), pick = () => cfg.pal[Math.floor(rnd() * cfg.pal.length)];
+    const ring = (f0, f1, n, sub, off = 0) => {
+      for (let k = 0; k < n; k++) for (let q = 0; q < sub; q++) {
+        const a0 = (k + off) * TAU / n, a1 = (k + 1 + off) * TAU / n, r0 = R * (f0 + (f1 - f0) * q / sub), r1 = R * (f0 + (f1 - f0) * (q + 1) / sub);
+        g.fillStyle = pick(); g.beginPath(); g.arc(c, c, r1, a0, a1); g.arc(c, c, r0, a1, a0, true); g.closePath(); g.fill();
+        g.strokeStyle = LEAD; g.lineWidth = S * 0.004; g.stroke();
+      }
+    };
+    const meds = (f, n, rr, off = 0.5) => {
+      for (let k = 0; k < n; k++) {
+        const a = (k + off) * TAU / n, x = c + Math.cos(a) * R * f, y = c + Math.sin(a) * R * f;
+        g.fillStyle = cfg.medBg; g.beginPath(); g.arc(x, y, R * rr, 0, TAU); g.fill();
+        g.fillStyle = pick(); g.beginPath(); g.arc(x, y, R * rr * 0.62, 0, TAU); g.fill();
+        g.fillStyle = cfg.skin; g.beginPath(); g.arc(x, y - R * rr * 0.28, R * rr * 0.16, 0, TAU); g.fill();
+        g.strokeStyle = LEAD; g.lineWidth = S * 0.005; g.beginPath(); g.arc(x, y, R * rr, 0, TAU); g.stroke(); g.beginPath(); g.arc(x, y, R * rr * 0.62, 0, TAU); g.stroke();
+      }
+    };
+    g.save(); g.beginPath(); g.arc(c, c, R, 0, TAU); g.clip();
+    g.fillStyle = LEAD; g.fillRect(0, 0, S, S);
+    ring(0.13, 0.42, cfg.n1, 2); ring(0.42, 0.7, cfg.n2, 2, 0.5); ring(0.7, 1, cfg.n2, 1);
+    meds(0.56, cfg.n2, 0.075); meds(0.86, cfg.n2, 0.085, 0);
+    // stone tracery: spokes, rings, cusped heads
+    g.strokeStyle = TRACERY; g.lineCap = 'round';
+    g.lineWidth = S * 0.012;
+    for (let k = 0; k < cfg.n1; k++) { const a = k * TAU / cfg.n1; g.beginPath(); g.moveTo(c + Math.cos(a) * R * 0.13, c + Math.sin(a) * R * 0.13); g.lineTo(c + Math.cos(a) * R * 0.42, c + Math.sin(a) * R * 0.42); g.stroke(); }
+    g.lineWidth = S * 0.008;
+    for (let k = 0; k < cfg.n2; k++) { const a = (k + 0.5) * TAU / cfg.n2; g.beginPath(); g.moveTo(c + Math.cos(a) * R * 0.42, c + Math.sin(a) * R * 0.42); g.lineTo(c + Math.cos(a) * R, c + Math.sin(a) * R); g.stroke(); }
+    for (let k = 0; k < cfg.n1; k++) { const a0 = k * TAU / cfg.n1, a1 = (k + 1) * TAU / cfg.n1, am = (a0 + a1) / 2; g.beginPath(); g.moveTo(c + Math.cos(a0) * R * 0.4, c + Math.sin(a0) * R * 0.4); g.quadraticCurveTo(c + Math.cos(am) * R * 0.52, c + Math.sin(am) * R * 0.52, c + Math.cos(a1) * R * 0.4, c + Math.sin(a1) * R * 0.4); g.stroke(); }
+    g.lineWidth = S * 0.014;
+    for (const f of [0.13, 0.42, 0.7]) { g.beginPath(); g.arc(c, c, R * f, 0, TAU); g.stroke(); }
+    g.fillStyle = cfg.hub; g.beginPath(); g.arc(c, c, R * 0.12, 0, TAU); g.fill();
+    g.fillStyle = cfg.skin; g.beginPath(); g.arc(c, c - R * 0.03, R * 0.035, 0, TAU); g.fill();
+    g.restore();
+    g.strokeStyle = TRACERY; g.lineWidth = S * 0.02; g.beginPath(); g.arc(c, c, R - S * 0.008, 0, TAU); g.stroke();
+  });
+}
+const BLUES = ['#1d3f9e', '#2a5bd1', '#1a2f7a', '#3b2a8f', '#5a2d8f', '#1d3f9e', '#2a5bd1', '#b3202a', '#e7b33c', '#1f6e5a'];
+const WARMS = ['#b3202a', '#d8382f', '#e7b33c', '#f0c868', '#2a5bd1', '#1d3f9e', '#b3202a', '#6a2d8f', '#e7b33c', '#1f7a4c'];
+const roseN = roseTexture(1024, { seed: 31, pal: BLUES, n1: 16, n2: 32, medBg: '#2a5bd1', hub: '#e7b33c', skin: '#e9c9a0' });
+const roseS = roseTexture(1024, { seed: 47, pal: WARMS, n1: 12, n2: 24, medBg: '#b3202a', hub: '#2a5bd1', skin: '#e9c9a0' });
+const roseW = roseTexture(512, { seed: 59, pal: ['#1d3f9e', '#2a5bd1', '#b3202a', '#d8382f', '#e7b33c', '#1d3f9e', '#6a2d8f'], n1: 12, n2: 24, medBg: '#1d3f9e', hub: '#b3202a', skin: '#e9c9a0' });
+// row of lancets under the transept roses
+function lancetRowTex(seed, pal) {
+  return canvasTex(1024, 256, (g, w, h) => {
+    const rnd = rng(seed), n = 12, lw = w / n;
+    for (let i = 0; i < n; i++) {
+      const x = i * lw + 6, ww = lw - 12;
+      g.save(); g.beginPath(); pointedPath(g, x, 6, ww, h - 12, 0.22); g.clip();
+      g.fillStyle = pal[i % 2 ? 0 : 1]; g.fillRect(x, 0, ww, h);
+      mosaic(g, x, 6, ww, h - 12, [pal[0], pal[1], pal[0], pal[2]], rnd, 3, 9, 6);
+      g.fillStyle = pal[3 + (i % 3)]; g.beginPath(); g.moveTo(x + ww * 0.5, h * 0.36); g.lineTo(x + ww * 0.82, h * 0.92); g.lineTo(x + ww * 0.18, h * 0.92); g.closePath(); g.fill();
+      g.fillStyle = '#e9c9a0'; g.beginPath(); g.arc(x + ww / 2, h * 0.31, ww * 0.13, 0, TAU); g.fill();
+      g.fillStyle = '#e7b33c'; g.beginPath(); g.arc(x + ww / 2, h * 0.31, ww * 0.21, Math.PI, TAU); g.lineWidth = 3; g.strokeStyle = '#e7b33c'; g.stroke();
+      g.restore();
+      g.strokeStyle = TRACERY; g.lineWidth = 7; g.beginPath(); pointedPath(g, x, 6, ww, h - 12, 0.22); g.stroke();
+    }
+  });
+}
+const rowN = lancetRowTex(5, ['#1d3f9e', '#2a5bd1', '#e7b33c', '#b3202a', '#5a2d8f', '#1f6e5a']);
+const rowS = lancetRowTex(9, ['#b3202a', '#1d3f9e', '#e7b33c', '#2a5bd1', '#1f7a4c', '#d8382f']);
+// choir stall back panels: carved oak reliefs
+const reliefTex = canvasTex(512, 256, (g, w, h) => {
+  const rnd = rng(13); g.fillStyle = '#4b2f1c'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 3; i++) {
+    const x = 14 + i * 166, y = 18, pw = 152, ph = 220;
+    g.fillStyle = '#5d3c25'; g.fillRect(x, y, pw, ph); g.strokeStyle = '#2c1a0f'; g.lineWidth = 5; g.strokeRect(x, y, pw, ph);
+    g.strokeStyle = '#7a5434'; g.lineWidth = 2; g.strokeRect(x + 7, y + 7, pw - 14, ph - 14);
+    g.fillStyle = '#7d5636';
+    for (let f = 0; f < 3; f++) { const fx = x + 30 + f * 45 + (rnd() - 0.5) * 10; g.beginPath(); g.moveTo(fx, y + 70); g.lineTo(fx + 20, y + 190); g.lineTo(fx - 20, y + 190); g.closePath(); g.fill(); g.beginPath(); g.arc(fx, y + 60, 11, 0, TAU); g.fill(); }
+    g.fillStyle = '#8a6440'; g.beginPath(); g.arc(x + pw / 2, y + 38, 22, Math.PI, TAU); g.fill();
+  }
+  speckle(g, w, h, 3000, rnd, 0.08);
+});
+// painted choir screen: gilt ground, arcaded niches, figures in colour
+const screenTex = canvasTex(512, 160, (g, w, h) => {
+  const rnd = rng(17); g.fillStyle = '#b98f3e'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#d2a94f'; g.fillRect(0, 0, w, 14); g.fillRect(0, h - 20, w, 20);
+  const n = 6, nw = w / n, robes = ['#2a4f9e', '#9e2a2a', '#2f6e45', '#7a3a8a', '#c86a2a', '#2a4f9e'];
+  for (let i = 0; i < n; i++) {
+    const x = i * nw;
+    g.fillStyle = '#cfa04a'; g.beginPath(); pointedPath(g, x + 8, 18, nw - 16, h - 42, 0.3); g.fill();
+    g.strokeStyle = '#e6d6b0'; g.lineWidth = 4; g.stroke();
+    for (let f = 0; f < 2; f++) {
+      const fx = x + nw * (0.33 + f * 0.34); g.fillStyle = robes[(i + f) % robes.length];
+      g.beginPath(); g.moveTo(fx, 62); g.lineTo(fx + 15, h - 24); g.lineTo(fx - 15, h - 24); g.closePath(); g.fill();
+      g.fillStyle = '#e8c9a0'; g.beginPath(); g.arc(fx, 54, 8, 0, TAU); g.fill();
+      g.strokeStyle = '#f2d77a'; g.lineWidth = 2; g.beginPath(); g.arc(fx, 54, 12, 0, TAU); g.stroke();
+    }
+  }
+  speckle(g, w, h, 1500, rnd, 0.08);
+});
+function softTex(draw) { const t = canvasTex(64, 64, draw); t.colorSpace = THREE.NoColorSpace; return t; }
+const blobTex = softTex((g, w, h) => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+const flameTex = softTex((g, w, h) => { g.translate(32, 36); g.scale(0.62, 1); const gr = g.createRadialGradient(0, 0, 0, 0, 0, 30); gr.addColorStop(0, 'rgba(255,250,230,1)'); gr.addColorStop(0.25, 'rgba(255,200,110,0.95)'); gr.addColorStop(0.6, 'rgba(255,140,40,0.35)'); gr.addColorStop(1, 'rgba(255,120,20,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 30, 0, TAU); g.fill(); });
+const shaftTex = (() => {
+  const c = document.createElement('canvas'); c.width = 32; c.height = 128; const g = c.getContext('2d'), im = g.createImageData(32, 128);
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 32; x++) {
+    const v = 1 - y / 127, side = Math.pow(Math.sin(Math.PI * (x + 0.5) / 32), 1.6), a = Math.pow(v, 0.8) * side;
+    const i = (y * 32 + x) * 4; im.data[i] = im.data[i + 1] = im.data[i + 2] = 255; im.data[i + 3] = Math.round(a * 255);
+  }
+  g.putImageData(im, 0, 0); return new THREE.CanvasTexture(c);
+})();
+
+// ---------- materials ----------
+const M = {
+  stone: new THREE.MeshLambertMaterial({ map: stoneTex }),
+  vault: new THREE.MeshLambertMaterial({ map: vaultTex, side: THREE.DoubleSide }),
+  rib: new THREE.MeshLambertMaterial({ color: '#dccaa6' }),
+  gallery: new THREE.MeshLambertMaterial({ map: stoneTex, color: '#8a7c66', side: THREE.DoubleSide }),
+  chair: new THREE.MeshLambertMaterial({ color: '#cfa775' }),
+  darkWood: new THREE.MeshLambertMaterial({ color: '#4a2f1d' }),
+  relief: new THREE.MeshLambertMaterial({ map: reliefTex }),
+  screen: new THREE.MeshLambertMaterial({ map: screenTex }),
+  marble: new THREE.MeshLambertMaterial({ color: '#f2ede2' }),
+  bronze: new THREE.MeshStandardMaterial({ color: '#7a5532', roughness: 0.42, metalness: 0.55, emissive: '#2a1a0a', emissiveIntensity: 0.6 }),
+  gold: new THREE.MeshStandardMaterial({ color: '#c99a3c', roughness: 0.35, metalness: 0.6, emissive: '#3a2608', emissiveIntensity: 0.7 }),
+  pipe: new THREE.MeshStandardMaterial({ color: '#cfd2d6', roughness: 0.3, metalness: 0.55, emissive: '#3c3e42', emissiveIntensity: 0.5 }),
+  wax: new THREE.MeshLambertMaterial({ color: '#f1e6cc', emissive: '#5a3a14', emissiveIntensity: 0.35 }),
+};
+
+// ---------- merged static architecture ----------
+const parts = { stone: [], vault: [], rib: [], gallery: [] };
+function worldUV(geo, scale) {
+  const p = geo.attributes.position, n = geo.attributes.normal, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i)), az = Math.abs(n.getZ(i));
+    let u, v; if (ax >= ay && ax >= az) { u = p.getZ(i); v = p.getY(i); } else if (ay >= az) { u = p.getX(i); v = p.getZ(i); } else { u = p.getX(i); v = p.getY(i); }
+    uv[i * 2] = u / scale; uv[i * 2 + 1] = v / scale;
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); return geo;
+}
+function add(key, geo, matrix, uvScale) {
+  let g = geo.index ? geo.toNonIndexed() : geo;
+  if (g !== geo) geo.dispose();
+  if (matrix) g.applyMatrix4(matrix);
+  if (uvScale) worldUV(g, uvScale);
+  parts[key].push(g);
+}
+function mergeGeos(list) {
+  let count = 0; for (const g of list) count += g.attributes.position.count;
+  const pos = new Float32Array(count * 3), nor = new Float32Array(count * 3), uv = new Float32Array(count * 2); let o = 0;
+  for (const g of list) { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2); o += g.attributes.position.count; g.dispose(); }
+  const m = new THREE.BufferGeometry();
+  m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); m.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  m.computeBoundingSphere(); return m;
+}
+const T = (x, y, z) => new THREE.Matrix4().makeTranslation(x, y, z);
+const RY = (a) => new THREE.Matrix4().makeRotationY(a);
+function box(x0, x1, y0, y1, z0, z1, key = 'stone') { add(key, new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), T((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), 3); }
+function placeShape(shape, x0, z0, x1, z1, depth, key = 'stone') { // extrude a wall shape (local u across, y up) between two floor points
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 6 });
+  g.translate(0, 0, -depth / 2);
+  add(key, g, T((x0 + x1) / 2, 0, (z0 + z1) / 2).multiply(RY(Math.atan2(-(z1 - z0), x1 - x0))), 3);
+}
+function boxAlong(x0, z0, x1, z1, y0, y1, th, key = 'stone') { // a wall slab from floor point to floor point
+  const L = Math.hypot(x1 - x0, z1 - z0);
+  add(key, new THREE.BoxGeometry(L, y1 - y0, th), T((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2).multiply(RY(Math.atan2(-(z1 - z0), x1 - x0))), 3);
+}
+
+// --- elevation: great arcade, tribune (gallery) opening, clerestory wall up to the formeret ---
+function elevShape(w, o) {
+  const h = w / 2, s = new THREE.Shape();
+  if (o.arcade) {
+    const hw = h - o.pier, P = profPts(hw, o.arcRise, 10);
+    s.moveTo(-h, 0); s.lineTo(-hw, 0); s.lineTo(-hw, o.arcSp);
+    for (let i = 1; i < P.length - 1; i++) s.lineTo(P[i][0], o.arcSp + P[i][1]);
+    s.lineTo(hw, o.arcSp); s.lineTo(hw, 0); s.lineTo(h, 0);
+  } else { s.moveTo(-h, 0); s.lineTo(h, 0); }
+  s.lineTo(h, o.top);
+  if (o.lun) { const P = profPts(h, o.lun, 12); for (let i = P.length - 2; i >= 1; i--) s.lineTo(P[i][0], o.top + P[i][1]); }
+  s.lineTo(-h, o.top);
+  if (o.trib) {
+    const hw = o.trib, P = profPts(hw, 2.2, 10), p = new THREE.Path();
+    p.moveTo(-hw, 11.0); p.lineTo(hw, 11.0); p.lineTo(hw, 15.4);
+    for (let i = P.length - 2; i >= 1; i--) p.lineTo(P[i][0], 15.4 + P[i][1]);
+    p.lineTo(-hw, 15.4); s.holes.push(p);
+  }
+  return s;
+}
+function tribTracery(hw) { // twin lancets + oculus filling a tribune opening
+  const s = new THREE.Shape(), P = profPts(hw + 0.08, 2.25, 10);
+  s.moveTo(-hw - 0.08, 10.85); s.lineTo(hw + 0.08, 10.85); s.lineTo(hw + 0.08, 15.4);
+  for (let i = P.length - 2; i >= 1; i--) s.lineTo(P[i][0], 15.4 + P[i][1]);
+  s.lineTo(-hw - 0.08, 15.4);
+  const lw = hw - 0.24, rl = Math.min(lw * 0.8, 1.6);
+  for (const sx of [-1, 1]) {
+    const cx = sx * (0.12 + lw / 2), q = profPts(lw / 2, rl, 8), p = new THREE.Path();
+    p.moveTo(cx - lw / 2, 11.0); p.lineTo(cx + lw / 2, 11.0); p.lineTo(cx + lw / 2, 13.8);
+    for (let i = q.length - 2; i >= 1; i--) p.lineTo(cx + q[i][0], 13.8 + q[i][1]);
+    p.lineTo(cx - lw / 2, 13.8); s.holes.push(p);
+  }
+  const oc = new THREE.Path(); oc.absarc(0, 16.25, Math.min(0.55, hw * 0.3), 0, TAU, true); s.holes.push(oc);
+  return s;
+}
+const highElev = (w, pier, arcRise, trib) => elevShape(w, { arcade: true, pier, arcSp: ARC_SP, arcRise, top: SP + 0.3, lun: LUN - SP, trib });
+
+// nave (10 bays of 6 m) and choir (4 bays) side walls on the pier line
+for (const s of [-1, 1]) {
+  for (let k = 0; k < 10; k++) {
+    const z0 = NAVE_Z[k], z1 = NAVE_Z[k + 1];
+    placeShape(highElev(6, 0.65, 2.8, 2.3), s * A, z0, s * A, z1, 0.9);
+    placeShape(tribTracery(2.3), s * A, z0, s * A, z1, 0.22);
+    placeShape(elevShape(6, { arcade: true, pier: 0.55, arcSp: ISP - 0.6, arcRise: 2.8, top: 10.7 }), s * X1, z0, s * X1, z1, 0.8);
+    if (k < 7) placeShape(elevShape(6, { arcade: true, pier: 0.45, arcSp: 5.6, arcRise: 2.4, top: 10.7 }), s * X2, z0, s * X2, z1, 0.9);
+    else placeShape(elevShape(6, { top: 10.7 }), s * X2, z0, s * X2, z1, 0.9);
+  }
+  for (let k = 0; k < 4; k++) {
+    const z0 = CHOIR_Z[k], z1 = CHOIR_Z[k + 1], w = z0 - z1;
+    placeShape(highElev(w, 0.65, 3.0, 3.0), s * A, z0, s * A, z1, 0.9);
+    placeShape(tribTracery(3.0), s * A, z0, s * A, z1, 0.22);
+    placeShape(elevShape(w, { arcade: true, pier: 0.55, arcSp: ISP - 0.6, arcRise: 2.8, top: 10.7 }), s * X1, z0, s * X1, z1, 0.8);
+    placeShape(elevShape(w, { arcade: true, pier: 0.45, arcSp: 5.6, arcRise: 2.4, top: 10.7 }), s * X2, z0, s * X2, z1, 0.9);
+  }
+  // side chapels: 7 along the nave, 4 along the choir
+  for (let i = 0; i <= 7; i++) box(...(s > 0 ? [X2, XC] : [-XC, -X2]), 0, 10.7, NAVE_Z[i] - 0.4, NAVE_Z[i] + 0.4);
+  box(...(s > 0 ? [XC, XC + 0.5] : [-XC - 0.5, -XC]), 0, 10.7, ZT - 0.4, NAVE_Z[7] + 0.4);
+  for (let i = 0; i <= 4; i++) box(...(s > 0 ? [X2, XC] : [-XC, -X2]), 0, 10.7, CHOIR_Z[i] - 0.4, CHOIR_Z[i] + 0.4);
+  box(...(s > 0 ? [XC, XC + 0.5] : [-XC - 0.5, -XC]), 0, 10.7, ZA - 0.4, -ZT + 0.4);
+  // galleries (tribunes) above the inner aisles
+  const gx = (a, b) => s > 0 ? [a, b] : [-b, -a];
+  for (const [za, zb] of [[ZT, ZW], [ZA, -ZT]]) {
+    box(...gx(A + 0.45, X1 + 0.4), 10.6, 10.85, za, zb, 'gallery');
+    box(...gx(X1, X1 + 0.5), 10.6, 18.6, za, zb, 'gallery');
+    box(...gx(A + 0.45, X1 + 0.5), 18.2, 18.5, za, zb, 'gallery');
+  }
+  // string courses
+  for (const y of [10.55, 18.15]) { box(...gx(A - 0.62, A - 0.4), y, y + 0.28, ZT, ZW); box(...gx(A - 0.62, A - 0.4), y, y + 0.28, ZA, -ZT); }
+  // transept side walls (three bays per arm, both faces)
+  for (const zs of [-1, 1]) {
+    const xs = [A, X1, X2, XT].map((v) => s * v);
+    for (let b = 0; b < 3; b++) {
+      const w = Math.abs(xs[b + 1] - xs[b]);
+      const sh = b < 2 ? elevShape(w, { arcade: true, pier: b === 0 ? 0.8 : 0.55, arcSp: ISP, arcRise: 3.0, top: SP + 0.3, lun: LUN - SP, trib: b === 0 ? 2.2 : 0 }) : elevShape(w, { top: SP + 0.3, lun: LUN - SP });
+      placeShape(sh, xs[b], zs * ZT, xs[b + 1], zs * ZT, 0.9);
+      if (b === 0) placeShape(tribTracery(2.2), xs[b], zs * ZT, xs[b + 1], zs * ZT, 0.22);
+    }
+  }
+  // transept end wall (gable under the end arch)
+  const gable = new THREE.Shape(), GP = profPts(ZT, CR - SP, 14);
+  gable.moveTo(-ZT - 0.6, 0); gable.lineTo(ZT + 0.6, 0); gable.lineTo(ZT + 0.6, SP + 0.3);
+  for (let i = GP.length - 2; i >= 1; i--) gable.lineTo(GP[i][0], SP + 0.3 + GP[i][1]);
+  gable.lineTo(-ZT - 0.6, SP + 0.3);
+  placeShape(gable, s * (XT + 0.3), ZT, s * (XT + 0.3), -ZT, 0.6);
+}
+// west wall + nave gable
+box(-X2 - 0.5, X2 + 0.5, 0, 18.6, ZW, ZW + 0.6);
+{
+  const g = new THREE.Shape(), P = profPts(A, CR - SP, 14);
+  g.moveTo(-A - 0.6, 18.0); g.lineTo(A + 0.6, 18.0); g.lineTo(A + 0.6, SP + 0.3);
+  for (let i = P.length - 2; i >= 1; i--) g.lineTo(P[i][0], SP + 0.3 + P[i][1]);
+  g.lineTo(-A - 0.6, SP + 0.3);
+  placeShape(g, -A, ZW + 0.3, A, ZW + 0.3, 0.6);
+}
+// hemicycle: arcade chords, ambulatory rings, radiating chapels
+for (let k = 0; k < 5; k++) {
+  const [x0, z0] = polar(A, PHI_APSE[k]), [x1, z1] = polar(A, PHI_APSE[k + 1]), w = Math.hypot(x1 - x0, z1 - z0);
+  placeShape(highElev(w, 0.55, 2.4, 1.3), x0, z0, x1, z1, 0.9);
+  placeShape(tribTracery(1.3), x0, z0, x1, z1, 0.22);
+}
+for (let k = 0; k < 10; k++) {
+  const p0 = Math.PI * k / 10, p1 = Math.PI * (k + 1) / 10;
+  { const [x0, z0] = polar(X1, p0), [x1, z1] = polar(X1, p1); placeShape(elevShape(Math.hypot(x1 - x0, z1 - z0), { arcade: true, pier: 0.5, arcSp: ISP - 0.6, arcRise: 2.0, top: 10.7 }), x0, z0, x1, z1, 0.8); }
+  { const [x0, z0] = polar(X2, p0), [x1, z1] = polar(X2, p1); placeShape(elevShape(Math.hypot(x1 - x0, z1 - z0), { arcade: true, pier: 0.45, arcSp: 5.6, arcRise: 2.4, top: 10.7 }), x0, z0, x1, z1, 0.9); }
+  { const [x0, z0] = polar(RC + 0.25, p0), [x1, z1] = polar(RC + 0.25, p1); boxAlong(x0, z0, x1, z1, 0, 10.7, 0.5); }
+  if (k > 0) { const [x0, z0] = polar(X2, p0), [x1, z1] = polar(RC + 0.3, p0); boxAlong(x0, z0, x1, z1, 0, 10.7, 0.8); }
+}
+{ // apse gallery: floor, back wall, ceiling
+  const fl = new THREE.RingGeometry(A + 0.4, X1 + 0.4, 24, 1, 0, Math.PI); fl.rotateX(-Math.PI / 2); add('gallery', fl, T(0, 10.85, ZA), 3);
+  const cl = new THREE.RingGeometry(A + 0.4, X1 + 0.5, 24, 1, 0, Math.PI); cl.rotateX(-Math.PI / 2); add('gallery', cl, T(0, 18.2, ZA), 3);
+  add('gallery', new THREE.CylinderGeometry(X1 + 0.25, X1 + 0.25, 8, 24, 1, true, Math.PI / 2, Math.PI), T(0, 14.6, ZA), 3);
+}
+
+// --- rib vaults as height fields: every web runs from its boundary arch up to the crown along a pointed spoke ---
+function fSpoke(lam, k) { return profH(1, k, lam) / k; }
+function vault(o) { o.k = (o.cr - o.sp) / o.a; return o; }
+function vaultH(V, t, s) {
+  const sc = V.L / 2, ds = s - sc, lw = Math.min(1, Math.abs(t) / V.a), le = Math.min(1, Math.abs(ds) / sc);
+  let hE, lam;
+  if (le >= lw) { lam = le; hE = le > 1e-6 ? V.sp + profH(V.a, V.cr - V.sp, t / le) : V.cr; }
+  else {
+    lam = lw; const qs = ds / lw;
+    if (V.sex) { const span = sc / 2; hE = V.sp + profH(span, V.lr, Math.abs(qs) - span); }
+    else hE = V.sp + profH(sc, V.lr, qs);
+  }
+  return hE + (V.cr - hE) * fSpoke(lam, V.k);
+}
+function gridGeo(us, vs, fn) {
+  const pos = [], idx = [], nu = us.length;
+  for (const v of vs) for (const u of us) pos.push(...fn(u, v));
+  for (let j = 0; j < vs.length - 1; j++) for (let i = 0; i < nu - 1; i++) { const a = j * nu + i, b = a + 1, c = a + nu, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+const steps = (a, b, n) => { const o = []; for (let i = 0; i <= n; i++) o.push(a + (b - a) * i / n); return o; };
+function vaultMesh(V, map, nt, ns, ext = 0.6) {
+  const ts = ext > 0 ? [-V.a - ext, ...steps(-V.a, V.a, nt), V.a + ext] : steps(-V.a, V.a, nt);
+  add('vault', gridGeo(ts, steps(0, V.L, ns), (t, s) => { const [x, z] = map(t, s); return [x, vaultH(V, clamp(t, -V.a, V.a), s), z]; }), null, 3);
+}
+function rib(points, radius, radial = 6) {
+  const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p)));
+  add('rib', new THREE.TubeGeometry(curve, Math.max(8, points.length), radius, radial, false));
+}
+function vaultRibs(V, map, r1, r2, o = {}) {
+  const n = o.n || 18, line = (fn) => { const out = []; for (let k = 0; k <= n; k++) { const [t, s] = fn(k / n), [x, z] = map(t, s); out.push([x, vaultH(V, t, s) - r1 * 0.8, z]); } return out; };
+  for (const sg of [-1, 1]) rib(line((u) => [V.a * (2 * u - 1), V.L / 2 + sg * V.L / 2 * (2 * u - 1)]), r1, o.radial);
+  if (o.start !== false) rib(line((u) => [V.a * (2 * u - 1), 0]), r2, o.radial);
+  if (o.end) rib(line((u) => [V.a * (2 * u - 1), V.L]), r2, o.radial);
+  if (V.sex) rib(line((u) => [V.a * (2 * u - 1), V.L / 2]), r1, o.radial);
+}
+// high vaults: sexpartite nave (5 double bays of 12 m) and choir (2 double bays), quadripartite crossing and transept arms
+for (let d = 0; d < 5; d++) {
+  const V = vault({ a: A, L: 12, sp: SP, cr: CR, lr: LUN - SP, sex: true }), z0 = ZT + 12 * d, map = (t, s) => [t, z0 + s];
+  vaultMesh(V, map, 16, 24); vaultRibs(V, map, 0.17, 0.3, { end: d === 4 });
+}
+for (let d = 0; d < 2; d++) {
+  const V = vault({ a: A, L: 15.75, sp: SP, cr: CR, lr: LUN - SP, sex: true }), z0 = -ZT - 15.75 * d, map = (t, s) => [t, z0 - s];
+  vaultMesh(V, map, 16, 28); vaultRibs(V, map, 0.17, 0.3, { end: d === 1 });
+}
+{
+  const V = vault({ a: A, L: 2 * ZT, sp: SP, cr: CR, lr: CR - SP }), map = (t, s) => [t, -ZT + s];
+  vaultMesh(V, map, 16, 20, 0); vaultRibs(V, map, 0.2, 0.32, { start: false });
+}
+for (const sg of [-1, 1]) {
+  const xs = [A, X1, X2, XT];
+  for (let b = 0; b < 3; b++) {
+    const L = xs[b + 1] - xs[b], x0 = xs[b], V = vault({ a: ZT, L, sp: SP, cr: CR, lr: LUN - SP }), map = (t, s) => [sg * (x0 + s), t];
+    vaultMesh(V, map, 16, 12); vaultRibs(V, map, 0.17, 0.3, { end: b === 2 });
+  }
+}
+// apse half-dome of five webs
+function apseH(r, phi) {
+  const seg = Math.PI / 5, k = clamp(Math.floor(phi / seg), 0, 4), half = seg * A / 2, u = (phi - (k + 0.5) * seg) * A;
+  const hE = SP + profH(half, LUN - SP, u);
+  return hE + (CR - hE) * fSpoke(Math.min(1, r / A), (CR - SP) / A);
+}
+add('vault', gridGeo([...steps(0, A, 12), A + 0.6], steps(0, Math.PI, 40), (r, phi) => { const [x, z] = polar(r, phi); return [x, apseH(Math.min(r, A), phi), z]; }), null, 3);
+for (let k = 1; k <= 4; k++) { const phi = PHI_APSE[k], pts = []; for (let i = 0; i <= 16; i++) { const r = A * (1 - i / 16), [x, z] = polar(r, phi); pts.push([x, apseH(r, phi) - 0.14, z]); } rib(pts, 0.17); }
+// aisle, ambulatory and chapel vaults
+function aisleRun(sp, cr, a, lr, xc, zs, s) {
+  for (let i = 0; i < zs.length - 1; i++) {
+    const L = Math.abs(zs[i + 1] - zs[i]), dir = Math.sign(zs[i + 1] - zs[i]), z0 = zs[i];
+    const V = vault({ a, L, sp, cr, lr }), map = (t, q) => [s * xc + t, z0 + dir * q];
+    vaultMesh(V, map, 8, 8, 0.5); vaultRibs(V, map, 0.1, 0.14, { n: 12, radial: 5, end: i === zs.length - 2 });
+  }
+}
+for (const s of [-1, 1]) {
+  aisleRun(ISP, ICR, 2.95, 2.8, (A + X1) / 2, NAVE_Z, s);
+  aisleRun(OSP, OCR, 2.95, 2.6, (X1 + X2) / 2, NAVE_Z, s);
+  aisleRun(CSP, CCR, 2.5, 2.4, (X2 + XC) / 2, NAVE_Z.slice(0, 8), s);
+  aisleRun(ISP, ICR, 2.95, 2.8, (A + X1) / 2, CHOIR_Z, s);
+  aisleRun(OSP, OCR, 2.95, 2.6, (X1 + X2) / 2, CHOIR_Z, s);
+  aisleRun(CSP, CCR, 2.5, 2.4, (X2 + XC) / 2, CHOIR_Z, s);
+}
+function ringRun(sp, cr, r0, r1, lr) {
+  const rc = (r0 + r1) / 2, a = (r1 - r0) / 2, L = rc * Math.PI / 10;
+  for (let k = 0; k < 10; k++) {
+    const th0 = Math.PI * k / 10, V = vault({ a, L, sp, cr, lr }), map = (t, q) => polar(rc + t, th0 + q / rc);
+    vaultMesh(V, map, 8, 8, 0.5); vaultRibs(V, map, 0.1, 0.14, { n: 12, radial: 5, end: k === 9 });
+  }
+}
+ringRun(ISP, ICR, A, X1, 1.4); ringRun(OSP, OCR, X1, X2, 2.0); ringRun(CSP, CCR, X2, RC, 2.4);
+
+// ---------- columns & piers (instanced) ----------
+const PIERS = []; // {x, z, r, h} for collision
+{
+  const cols = [];   // [x, z, r, shaftTop]
+  for (const s of [-1, 1]) {
+    for (let k = 1; k < 10; k++) cols.push([s * A, NAVE_Z[k], k === 9 ? 1.05 : 0.65, ARC_SP - 0.6]);
+    for (let k = 1; k <= 4; k++) cols.push([s * A, CHOIR_Z[k], 0.65, ARC_SP - 0.6]);
+    for (const z of [...NAVE_Z.slice(0, 10), ...CHOIR_Z]) cols.push([s * X1, z, 0.55, ISP - 1.2]);
+  }
+  for (let k = 1; k <= 4; k++) { const [x, z] = polar(A, PHI_APSE[k]); cols.push([x, z, 0.55, ARC_SP - 0.6]); }
+  for (let k = 1; k < 10; k++) { const [x, z] = polar(X1, Math.PI * k / 10); cols.push([x, z, 0.5, ISP - 1.2]); }
+  const geo = new THREE.CylinderGeometry(1, 1, 1, 16); geo.translate(0, 0.5, 0);
+  const capGeo = new THREE.CylinderGeometry(1.5, 1, 1, 12); capGeo.translate(0, 0.5, 0);
+  const n = cols.length, shaft = new THREE.InstancedMesh(geo, M.stone, n), base = new THREE.InstancedMesh(geo, M.rib, n), cap = new THREE.InstancedMesh(capGeo, M.rib, n);
+  const abac = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), M.rib, n), d = new THREE.Object3D();
+  cols.forEach(([x, z, r, top], i) => {
+    d.rotation.set(0, 0, 0);
+    d.position.set(x, 0, z); d.scale.set(r + 0.14, 0.5, r + 0.14); d.updateMatrix(); base.setMatrixAt(i, d.matrix);
+    d.position.set(x, 0.5, z); d.scale.set(r, top - 0.5, r); d.updateMatrix(); shaft.setMatrixAt(i, d.matrix);
+    d.position.set(x, top, z); d.scale.set(r, 0.45, r); d.updateMatrix(); cap.setMatrixAt(i, d.matrix);
+    d.position.set(x, top + 0.55, z); d.rotation.set(0, Math.PI / 4, 0); d.scale.set(r * 2.1, 0.2, r * 2.1); d.updateMatrix(); abac.setMatrixAt(i, d.matrix);
+    PIERS.push({ x, z, r, h: top + 0.8 });
+  });
+  for (const m of [shaft, base, cap, abac]) { m.frustumCulled = false; scene.add(m); }
+  // crossing piers: compound, full height
+  const cp = [], sh = [];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const x = sx * A, z = sz * ZT; cp.push([x, z]); PIERS.push({ x, z, r: 1.05, h: 99 });
+    for (let k = 0; k < 8; k++) { const a = k * TAU / 8; sh.push([x + Math.cos(a) * 1.0, z + Math.sin(a) * 1.0, 0, SP, 0.22]); }
+  }
+  // wall shafts rising from the capitals to the vault springing
+  for (const s of [-1, 1]) {
+    for (const z of [...NAVE_Z.slice(1, 10), ...CHOIR_Z.slice(1)]) for (const dz of [-0.3, 0, 0.3]) sh.push([s * (A - 0.56), z + dz, ARC_SP + 0.1, SP, dz ? 0.1 : 0.14]);
+    for (const z of [ZT + 0.0, ZW - 0.6]) for (const dz of [-0.3, 0.3]) sh.push([s * (A - 0.56), z + dz, ARC_SP + 0.1, SP, 0.1]);
+  }
+  for (let k = 1; k <= 4; k++) { const [x, z] = polar(A - 0.56, PHI_APSE[k]); sh.push([x, z, ARC_SP + 0.1, SP, 0.14]); }
+  const cyl = new THREE.CylinderGeometry(1, 1, 1, 10); cyl.translate(0, 0.5, 0);
+  const cpm = new THREE.InstancedMesh(cyl, M.stone, cp.length);
+  cp.forEach(([x, z], i) => { d.rotation.set(0, 0, 0); d.position.set(x, 0, z); d.scale.set(1.05, SP, 1.05); d.updateMatrix(); cpm.setMatrixAt(i, d.matrix); });
+  const shm = new THREE.InstancedMesh(cyl, M.rib, sh.length);
+  sh.forEach(([x, z, y0, y1, r], i) => { d.rotation.set(0, 0, 0); d.position.set(x, y0, z); d.scale.set(r, y1 - y0, r); d.updateMatrix(); shm.setMatrixAt(i, d.matrix); });
+  for (const m of [cpm, shm]) { m.frustumCulled = false; scene.add(m); }
+}
+// engaged piers at the ends of the chapel walls
+for (const s of [-1, 1]) for (const z of [...NAVE_Z.slice(0, 8), ...CHOIR_Z]) box(s * X2 - 0.45, s * X2 + 0.45, 0, 10.7, z - 0.5, z + 0.5);
+
+for (const k of Object.keys(parts)) { const mesh = new THREE.Mesh(mergeGeos(parts[k]), M[k]); mesh.matrixAutoUpdate = false; scene.add(mesh); parts[k] = []; }
+
+// ---------- floor ----------
+{
+  const g = new THREE.PlaneGeometry(52, 140); g.rotateX(-Math.PI / 2); g.translate(0, 0, 3);
+  worldUV(g, 3.4);
+  const f = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: floorTex })); scene.add(f);
+}
+
+// ---------- windows (glass decals on the inner wall faces) ----------
+const d3 = new THREE.Object3D();
+function decals(tex, geo, list) {
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.35, toneMapped: false, fog: false, side: THREE.DoubleSide });
+  const im = new THREE.InstancedMesh(geo, mat, list.length);
+  list.forEach(([x, y, z, ry, w, h], i) => { d3.position.set(x, y, z); d3.rotation.set(0, ry, 0); d3.scale.set(w, h, 1); d3.updateMatrix(); im.setMatrixAt(i, d3.matrix); });
+  im.frustumCulled = false; scene.add(im); return im;
+}
+const plane = new THREE.PlaneGeometry(1, 1), disc = new THREE.CircleGeometry(0.5, 40);
+const NAVE_PAL = ['#d9d4bf', '#cdd3c4', '#bfcacd', '#d8ccae', '#c9c3d4', '#2a5bd1', '#d6c9a4', '#b3202a', '#e7b33c', '#cfd6cf'];
+const CHOIR_PAL = ['#1d3f9e', '#2a5bd1', '#b3202a', '#e7b33c', '#1d3f9e', '#d8382f', '#1f7a4c', '#6a2d8f'];
+const W = { n0: [], n1: [], c0: [], c1: [], g0: [], g1: [], gal: [] };
+const CLY = 23.95, CLH = 10.3;
+for (const s of [-1, 1]) {
+  const fx = s * (A - 0.47), ry = -s * Math.PI / 2;
+  for (let k = 0; k < 10; k++) { const zc = NAVE_Z[k] + 3; W[k % 2 ? 'n1' : 'n0'].push([fx, CLY, zc, ry, 3.6, CLH]); W.gal.push([s * (X1 - 0.02), 14.6, zc, ry, 1.6, 1.6]); }
+  for (let k = 0; k < 4; k++) { const zc = (CHOIR_Z[k] + CHOIR_Z[k + 1]) / 2; W[k % 2 ? 'c1' : 'c0'].push([fx, CLY, zc, ry, 4.4, CLH]); W.gal.push([s * (X1 - 0.02), 14.6, zc, ry, 1.6, 1.6]); }
+  for (let k = 0; k < 7; k++) for (const dz of [-1.15, 1.15]) W[(k + (dz > 0)) % 2 ? 'g1' : 'g0'].push([s * (XC - 0.02), 5.2, NAVE_Z[k] + 3 + dz, ry, 1.3, 5.8]);
+  for (let k = 7; k < 10; k++) for (const dz of [-1.1, 1.1]) W.g0.push([s * (X2 - 0.47), 5.6, NAVE_Z[k] + 3 + dz, ry, 1.2, 5.0]);
+  for (let k = 0; k < 4; k++) { const zc = (CHOIR_Z[k] + CHOIR_Z[k + 1]) / 2; for (const dz of [-1.5, 1.5]) W[k % 2 ? 'g1' : 'g0'].push([s * (XC - 0.02), 5.2, zc + dz, ry, 1.3, 5.8]); }
+  for (const zs of [-1, 1]) for (let b = 0; b < 3; b++) { const xs = [A, X1, X2, XT]; W[b % 2 ? 'n1' : 'c0'].push([s * (xs[b] + xs[b + 1]) / 2, CLY, zs * (ZT - 0.47), zs > 0 ? Math.PI : 0, 3.5, CLH]); }
+}
+for (let k = 0; k < 5; k++) {
+  const pm = (PHI_APSE[k] + PHI_APSE[k + 1]) / 2, r = A * Math.cos(Math.PI / 10) - 0.47, [x, z] = polar(r, pm), ry = Math.atan2(-Math.cos(pm), Math.sin(pm));
+  W[k % 2 ? 'c1' : 'c0'].push([x, CLY - 0.1, z, ry, 2.6, CLH - 0.2]);
+}
+for (let k = 0; k < 10; k++) {
+  const pm = Math.PI * (k + 0.5) / 10, r = RC * Math.cos(Math.PI / 20) - 0.02, ry = Math.atan2(-Math.cos(pm), Math.sin(pm));
+  for (const off of [-0.055, 0.055]) { const [x, z] = polar(r, pm + off); W[k % 2 ? 'g1' : 'g0'].push([x, 5.2, z, ry, 1.3, 5.8]); }
+}
+decals(clereTex(NAVE_PAL, 3, false), plane, W.n0); decals(clereTex(NAVE_PAL, 8, false), plane, W.n1);
+decals(clereTex(CHOIR_PAL, 4, true), plane, W.c0); decals(clereTex(CHOIR_PAL, 9, true), plane, W.c1);
+decals(grisTex(21), plane, W.g0); decals(grisTex(22), plane, W.g1);
+decals(roseTexture(256, { seed: 71, pal: ['#d9d4bf', '#cdd3c4', '#bfcacd', '#e4c98c', '#a9bfd6'], n1: 6, n2: 12, medBg: '#cdd3c4', hub: '#e4c98c', skin: '#e4c98c' }), disc, W.gal);
+// rose windows: north (13.1 m), south (13.1 m), west (9.7 m) + lancet rows under the transept roses
+decals(roseN, disc, [[-(XT - 0.03), 21.5, 0, Math.PI / 2, 13.1, 13.1]]);
+decals(roseS, disc, [[XT - 0.03, 21.5, 0, -Math.PI / 2, 13.1, 13.1]]);
+decals(roseW, disc, [[0, 23.6, ZW - 0.03, Math.PI, 9.7, 9.7]]);
+decals(rowN, plane, [[-(XT - 0.03), 11.9, 0, Math.PI / 2, 12.4, 4.6]]);
+decals(rowS, plane, [[XT - 0.03, 11.9, 0, -Math.PI / 2, 12.4, 4.6]]);
+
+// ---------- coloured light: shafts + floor pools (sun high in the south, +x) ----------
+{
+  const SUN = new THREE.Vector3(-0.34, -0.93, -0.12).normalize();
+  const sPos = [], sUv = [], sCol = [], pPos = [], pUv = [], pCol = [];
+  const quad = (arrP, arrU, arrC, a, b, c, d, col) => {
+    for (const [p, u] of [[a, [0, 1]], [b, [1, 1]], [c, [1, 0]], [a, [0, 1]], [c, [1, 0]], [d, [0, 0]]]) { arrP.push(p.x, p.y, p.z); arrU.push(...u); arrC.push(col.r, col.g, col.b); }
+  };
+  const tint = (hex, mix) => new THREE.Color('#fff4dc').lerp(new THREE.Color(hex), mix);
+  const hitOf = (top) => top.clone().add(SUN.clone().multiplyScalar(top.y / -SUN.y));
+  function shaft(top, width, depth, col) {
+    const L = SUN.clone().multiplyScalar(top.y / -SUN.y), Z = new THREE.Vector3(0, 0, 1), W2 = new THREE.Vector3().crossVectors(SUN, Z).normalize();
+    for (const [dir, wd] of [[Z, width], [W2, depth]]) {
+      const h = dir.clone().multiplyScalar(wd / 2), a = top.clone().sub(h), b = top.clone().add(h), c = b.clone().add(L), d = a.clone().add(L);
+      quad(sPos, sUv, sCol, a, b, c, d, col);
+    }
+    return top.clone().add(L);
+  }
+  function pool(center, size, pal, rnd) {
+    for (let i = 0; i < 4; i++) {
+      const cx = center.x + (rnd() - 0.5) * size * 0.7, cz = center.z + (rnd() - 0.5) * size * 0.6, s = size * (0.45 + rnd() * 0.3), col = new THREE.Color(pal[Math.floor(rnd() * pal.length)]);
+      const y = 0.012 + i * 0.001;
+      quad(pPos, pUv, pCol, new THREE.Vector3(cx - s, y, cz - s), new THREE.Vector3(cx + s, y, cz - s), new THREE.Vector3(cx + s, y, cz + s), new THREE.Vector3(cx - s, y, cz + s), col);
+    }
+  }
+  const rnd = rng(77);
+  for (let k = 0; k < 10; k++) {
+    const top = new THREE.Vector3(A - 0.5, CLY, NAVE_Z[k] + 3);
+    const hit = k % 2 === 0 ? shaft(top, 3.0, 2.0, tint('#bfcde0', 0.3)) : hitOf(top);
+    pool(hit, 2.2, k % 3 ? NAVE_PAL.slice(4, 9) : ['#2a5bd1', '#e7b33c', '#d9d4bf', '#b3202a'], rnd);
+  }
+  for (let k = 0; k < 4; k++) { const top = new THREE.Vector3(A - 0.5, CLY, (CHOIR_Z[k] + CHOIR_Z[k + 1]) / 2); pool(k % 2 ? shaft(top, 3.4, 2.2, tint('#2a5bd1', 0.35)) : hitOf(top), 2.4, CHOIR_PAL, rnd); }
+  const rhit = shaft(new THREE.Vector3(XT - 0.3, 21.5, 0), 9, 6, tint('#d8382f', 0.25));
+  pool(rhit, 4.2, ['#b3202a', '#e7b33c', '#d8382f', '#2a5bd1', '#f0c868'], rnd);
+  const mk = (P, U, C, map, opacity) => {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map, vertexColors: true, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false }));
+    m.frustumCulled = false; m.renderOrder = 2; scene.add(m); return m;
+  };
+  mk(sPos, sUv, sCol, shaftTex, 0.13);
+  mk(pPos, pUv, pCol, blobTex, 0.38);
+}
+
+// ---------- furnishings ----------
+function instBoxes(mat, list) { // list of [cx, cy, cz, sx, sy, sz, ry?]
+  const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, list.length);
+  list.forEach(([x, y, z, sx, sy, sz, ry = 0], i) => { d3.position.set(x, y, z); d3.rotation.set(0, ry, 0); d3.scale.set(sx, sy, sz); d3.updateMatrix(); im.setMatrixAt(i, d3.matrix); });
+  im.frustumCulled = false; scene.add(im); return im;
+}
+// ~1,200 light wooden chairs: nave rows facing east, transept rows facing the crossing
+const BLOCKS = [];
+{
+  const pieces = [[0.44, 0.035, 0.42, 0, 0.46, 0], [0.44, 0.34, 0.025, 0, 0.74, 0.2], [0.03, 0.46, 0.4, -0.2, 0.23, 0], [0.03, 0.46, 0.4, 0.2, 0.23, 0], [0.03, 0.4, 0.03, -0.2, 0.68, 0.2], [0.03, 0.4, 0.03, 0.2, 0.68, 0.2]];
+  const chairGeo = mergeGeos(pieces.map(([sx, sy, sz, x, y, z]) => { const b = new THREE.BoxGeometry(sx, sy, sz).toNonIndexed(); b.translate(x, y, z); return b; }));
+  const list = [];
+  for (let z = 10.2; z <= 53; z += 0.92) for (const s of [-1, 1]) for (let i = 0; i < 8; i++) list.push([s * (1.55 + i * 0.56), z, 0]);
+  for (const s of [-1, 1]) for (let x = 9.6; x <= 20.6; x += 0.92) for (let z = -5.6; z <= 5.65; z += 0.56) if (Math.abs(z) > 0.9) list.push([s * x, z, s * Math.PI / 2]);
+  const im = new THREE.InstancedMesh(chairGeo, M.chair, list.length);
+  list.forEach(([x, z, ry], i) => { d3.position.set(x, 0, z); d3.rotation.set(0, ry, 0); d3.scale.set(1, 1, 1); d3.updateMatrix(); im.setMatrixAt(i, d3.matrix); });
+  im.frustumCulled = false; scene.add(im);
+  for (const s of [-1, 1]) {
+    BLOCKS.push({ x0: s > 0 ? 1.2 : -5.95, x1: s > 0 ? 5.95 : -1.2, z0: 9.7, z1: 53.5, h: 1.0 });
+    for (const [z0, z1] of [[-5.9, -0.7], [0.7, 5.9]]) BLOCKS.push({ x0: s > 0 ? 9.2 : -20.95, x1: s > 0 ? 20.95 : -9.2, z0, z1, h: 1.0 });
+  }
+}
+// crossing: raised platform with the bowl-shaped bronze altar
+instBoxes(M.marble, [[0, 0.25, -1.25, 8.4, 0.5, 7.5], [0, 0.12, 2.85, 6, 0.24, 0.7]]);
+BLOCKS.push({ x0: -4.3, x1: 4.3, z0: -5.1, z1: 3.3, h: 0.7 });
+{
+  const bowl = new THREE.LatheGeometry([[0, 0], [0.55, 0], [0.62, 0.08], [0.95, 0.42], [1.22, 0.82], [1.32, 1.02], [1.3, 1.08], [0, 1.08]].map(([x, y]) => new THREE.Vector2(x, y)), 40);
+  const alt = new THREE.Mesh(bowl, M.bronze); alt.position.set(0, 0.5, -1.4); scene.add(alt);
+  const amb = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.42, 1.25, 24), M.bronze); amb.position.set(3.0, 1.12, 1.3); scene.add(amb);
+  const cath = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.3, 0.7), M.bronze); cath.position.set(-3.1, 1.15, -4.2); scene.add(cath);
+}
+// choir: 18th-century oak stalls with carved panels, choir organ over the north stalls, painted screen outside
+instBoxes(M.darkWood, [
+  [-5.15, 0.55, -20.5, 0.9, 1.1, 21], [5.15, 0.55, -20.5, 0.9, 1.1, 21], [-5.62, 5.1, -20.5, 0.6, 0.4, 21], [5.62, 5.1, -20.5, 0.6, 0.4, 21],
+  [-5.4, 5.85, -15.25, 1.1, 1.1, 4.5],
+]);
+instBoxes(M.relief, [[-5.62, 3.0, -20.5, 0.22, 3.8, 21], [5.62, 3.0, -20.5, 0.22, 3.8, 21]]);
+for (const s of [-1, 1]) BLOCKS.push({ x0: s > 0 ? 4.55 : -6.1, x1: s > 0 ? 6.1 : -4.55, z0: -31.1, z1: -9.9, h: 5.5 });
+{
+  const scr = [];
+  for (const s of [-1, 1]) for (let k = 0; k < 4; k++) {
+    const z0 = k === 0 ? -9.6 : CHOIR_Z[k] - 0.7, z1 = CHOIR_Z[k + 1] + 0.7;
+    scr.push([s * (A + 0.2), 1.75, (z0 + z1) / 2, 0.36, 3.5, Math.abs(z1 - z0)]);
+  }
+  instBoxes(M.screen, scr);
+  for (const s of [-1, 1]) BLOCKS.push({ x0: s > 0 ? A - 0.6 : -A - 0.5, x1: s > 0 ? A + 0.5 : -A + 0.6, z0: ZA, z1: -9.5, h: 3.7 });
+  const par = [];
+  for (let k = 0; k < 5; k++) { const [x0, z0] = polar(A, PHI_APSE[k]), [x1, z1] = polar(A, PHI_APSE[k + 1]); par.push([(x0 + x1) / 2, 0.6, (z0 + z1) / 2, Math.hypot(x1 - x0, z1 - z0) - 1.1, 1.2, 0.35, Math.atan2(-(z1 - z0), x1 - x0)]); }
+  instBoxes(M.stone, par);
+}
+// east end: marble group under a gilt cross (the Vow of Louis XIII)
+instBoxes(M.marble, [[0, 0.2, -36.9, 5.4, 0.4, 2.6], [0, 0.95, -37.3, 2.4, 1.1, 1.0]]);
+instBoxes(M.gold, [[0, 3.9, -37.75, 0.16, 4.6, 0.12], [0, 4.9, -37.75, 1.9, 0.16, 0.12]]);
+{ const g = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [0.75, 0], [0.62, 0.6], [0.4, 1.15], [0.2, 1.45], [0.24, 1.6], [0, 1.72]].map(([x, y]) => new THREE.Vector2(x, y)), 20), M.marble); g.position.set(0, 1.5, -37.2); scene.add(g); }
+BLOCKS.push({ x0: -2.9, x1: 2.9, z0: -38.4, z1: -35.5, h: 6 });
+// Virgin and Child at the south-east crossing pier, with a votive stand
+instBoxes(M.marble, [[7.75, 0.8, -8.35, 0.7, 1.6, 0.7]]);
+{ const g = new THREE.Mesh(new THREE.LatheGeometry([[0, 0], [0.32, 0], [0.28, 0.7], [0.2, 1.25], [0.13, 1.4], [0.16, 1.5], [0, 1.64]].map(([x, y]) => new THREE.Vector2(x, y)), 18), M.marble); g.position.set(7.75, 1.6, -8.35); scene.add(g); }
+instBoxes(M.darkWood, [[8.9, 0.45, -9.3, 1.6, 0.9, 0.6, -0.6]]);
+BLOCKS.push({ x0: 7.25, x1: 9.8, z0: -9.85, z1: -7.85, h: 3.4 });
+// west: organ tribune and the great organ (12 m, silver pipe towers)
+instBoxes(M.stone, [[0, 10.15, 64.9, 12.0, 0.9, 4.2], [0, 11.1, 62.95, 12.0, 1.0, 0.3]]);
+instBoxes(M.darkWood, [[0, 11.6, 65.4, 12.0, 2.0, 2.6], [0, 17.0, 66.0, 11.0, 8.8, 1.4]]);
+{
+  const pipes = [], caps = [];
+  const towers = [[-4.9, 8.0], [-2.55, 6.3], [0, 9.6], [2.55, 6.3], [4.9, 8.0]];
+  for (const [tx, L] of towers) {
+    for (let k = 0; k < 7; k++) { const o = k - 3; pipes.push([tx + o * 0.3, 64.25 - Math.abs(o) * 0.1, L * (1 - Math.abs(o) * 0.05), 0.13]); }
+    caps.push([tx, 12.6 + L + 0.35, 64.4, 2.4, 0.5, 0.9]);
+  }
+  for (let f = 0; f < 4; f++) { const x0 = towers[f][0] + 1.1, x1 = towers[f + 1][0] - 1.1, n = 5; for (let k = 0; k < n; k++) { const x = x0 + (x1 - x0) * k / (n - 1); pipes.push([x, 64.5, 3.6 + Math.abs(k - 2) * 0.5, 0.08]); } }
+  for (let k = 0; k < 11; k++) pipes.push([-5.4, -17.0 + k * 0.33, 1.6 + Math.abs(k - 5) * 0.28, 0.07, 6.4]);
+  const geo = new THREE.CylinderGeometry(1, 1, 1, 10); geo.translate(0, 0.5, 0);
+  const im = new THREE.InstancedMesh(geo, M.pipe, pipes.length);
+  pipes.forEach(([x, z, L, r, y0 = 12.6], i) => { d3.position.set(x, y0, z); d3.rotation.set(0, 0, 0); d3.scale.set(r, L, r); d3.updateMatrix(); im.setMatrixAt(i, d3.matrix); });
+  im.frustumCulled = false; scene.add(im);
+  instBoxes(M.darkWood, caps);
+}
+// portals
+instBoxes(M.darkWood, [[0, 3.3, ZW - 0.06, 5.0, 6.6, 0.12], [-15.35, 2.8, ZW - 0.06, 3.6, 5.6, 0.12], [15.35, 2.8, ZW - 0.06, 3.6, 5.6, 0.12],
+  [-(XT - 0.06), 2.8, 0, 0.12, 5.6, 4.2], [XT - 0.06, 2.8, 0, 0.12, 5.6, 4.2]]);
+
+// votive candles
+const flamePos = [], candles = [];
+for (let row = 0; row < 2; row++) for (let i = 0; i < 8; i++) { const x = 8.35 + i * 0.16 + row * 0.08, z = -9.0 - i * 0.1 + row * 0.18; candles.push([x, 0.9, z, 0.07 + (i % 3) * 0.02]); flamePos.push(x, 0.9 + 0.07 + (i % 3) * 0.02 + 0.045, z); }
+{
+  const geo = new THREE.CylinderGeometry(1, 1, 1, 8); geo.translate(0, 0.5, 0);
+  const im = new THREE.InstancedMesh(geo, M.wax, candles.length);
+  candles.forEach(([x, y, z, h], i) => { d3.position.set(x, y, z); d3.rotation.set(0, 0, 0); d3.scale.set(0.04, h, 0.04); d3.updateMatrix(); im.setMatrixAt(i, d3.matrix); });
+  im.frustumCulled = false; scene.add(im);
+}
+const flameGeo = new THREE.BufferGeometry(); flameGeo.setAttribute('position', new THREE.Float32BufferAttribute(flamePos, 3));
+const flameMat = new THREE.PointsMaterial({ map: flameTex, size: 0.13, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: '#ffd28a', fog: false, toneMapped: false });
+const flames = new THREE.Points(flameGeo, flameMat); flames.frustumCulled = false; scene.add(flames);
+
+// ---------- lights ----------
+scene.add(new THREE.HemisphereLight('#fff4e2', '#b9a27e', 2.1));
+const sun = new THREE.DirectionalLight('#fff0d4', 1.3); sun.position.set(0.34, 0.93, 0.12); scene.add(sun);
+const fill = new THREE.DirectionalLight('#d8e0f0', 0.45); fill.position.set(-0.4, 0.3, -0.6); scene.add(fill);
+
+// ---------- collision ----------
+const CHAPEL_N = []; for (let i = 0; i < 7; i++) CHAPEL_N.push([NAVE_Z[i] + 0.45, NAVE_Z[i + 1] - 0.45]);
+const CHAPEL_C = []; for (let i = 0; i < 4; i++) CHAPEL_C.push([CHOIR_Z[i + 1] + 0.45, CHOIR_Z[i] - 0.45]);
+function inShell(x, z) {
+  const ax = Math.abs(x);
+  if (z >= 6.6 && z <= ZW - 0.45 && ax <= X2 - 0.3) return true;
+  if (z >= -6.6 && z <= 6.6 && ax <= XT - 0.4) return true;
+  if (z <= -6.6 && z >= ZA && ax <= X2 - 0.3) return true;
+  if (z < ZA) {
+    const r = Math.hypot(x, z - ZA); if (r <= X2 - 0.3) return true;
+    if (r <= RC - 0.35) { const seg = Math.PI / 10, phi = Math.atan2(-(z - ZA), x), f = phi / seg - Math.floor(phi / seg), half = 0.5 / (r * seg); return f > half && f < 1 - half; }
+    return false;
+  }
+  if (ax > X2 - 0.3 && ax <= XC - 0.35) { for (const [a, b] of (z > 0 ? CHAPEL_N : CHAPEL_C)) if (z >= a && z <= b) return true; }
+  return false;
+}
+const inRect = (r, x, z) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1;
+function walkable(x, z) {
+  if (!inShell(x, z)) return false;
+  for (const b of BLOCKS) if (inRect(b, x, z)) return false;
+  if (z < ZA && Math.abs(Math.hypot(x, z - ZA) - A) < 0.5) return false;   // hemicycle parapet
+  return true;
+}
+function camFree(x, y, z) {
+  if (!inShell(x, z)) return false;
+  for (const c of PIERS) if (y < c.h && (x - c.x) ** 2 + (z - c.z) ** 2 < (c.r + 0.3) ** 2) return false;
+  for (const b of BLOCKS) if (y < b.h && inRect(b, x, z)) return false;
+  const ax = Math.abs(x), az = Math.abs(z);
+  if (z < ZA) {
+    const r = Math.hypot(x, z - ZA);
+    if (Math.abs(r - A) < 0.7 && y > 7.4) return false;
+    if (Math.abs(r - X1) < 0.6 && y > 6.4) return false;
+    if (Math.abs(r - X2) < 0.6 && y > 6.0) return false;
+    if (r > A + 0.3 && y > 10.0) return false;
+  } else if (az > ZT - 0.3) {
+    if (Math.abs(ax - A) < 0.7 && y > 7.4) return false;
+    if (Math.abs(ax - X1) < 0.6 && y > 6.4) return false;
+    if (Math.abs(ax - X2) < 0.6 && y > 6.0) return false;
+    if (ax > A + 0.3 && y > 10.0) return false;
+    if (az < ZT + 0.7 && ax > A - 0.5 && y > 7.0) return false;
+  }
+  if (z > 62.5 && ax < A && y > 9.3) return false;
+  return true;
+}
+function zoneName(x, z) {
+  const ax = Math.abs(x), side = x < 0 ? '북쪽' : '남쪽';
+  if (z > ZT) {
+    if (ax < A) return z > 61 ? '서쪽 정문 · 대오르간 아래' : '신랑';
+    if (ax < X1) return side + ' 안쪽 측랑'; if (ax < X2) return side + ' 바깥 측랑'; return side + ' 측면 경당';
+  }
+  if (z >= -ZT) return ax < A ? '교차부 · 청동 제단' : (side + ' 수랑 · 장미창');
+  if (z >= ZA) { if (ax < A) return '내진 · 성가대석'; if (ax < X2) return side + ' 내진 회랑'; return side + ' 내진 경당'; }
+  const r = Math.hypot(x, z - ZA); if (r < A) return '후진 · 루이 13세의 서원'; if (r < X2) return '이중 회랑'; return '방사 경당';
+}
+
+// ---------- player & camera ----------
+const me = { x: (Math.random() - 0.5) * 2, z: 61.0, ry: 0 };
+const cam = { yaw: 0, pitch: 0.39, dist: 4.4, cur: 4.4, tx: me.x, tz: me.z };
+let entered = false;
+const keys = new Set();
+const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
+const touches = new Map(); let pinchD = 0;
+let mouseDrag = null;
+
+function orbit(dx, dy, s) { cam.yaw -= dx * s; cam.pitch = clamp(cam.pitch + dy * s * 0.85, -0.5, 1.15); }
+function setStick(show, x, y) { const s = $('stick'); s.hidden = !show; if (show) { s.style.left = x + 'px'; s.style.top = y + 'px'; } }
+canvas.addEventListener('pointerdown', (e) => {
+  if (!entered) return;
+  canvas.focus({ preventScroll: true });
+  if (e.pointerType === 'touch') {
+    if (e.clientX < window.innerWidth * 0.45 && joy.id === null) { joy.id = e.pointerId; joy.ox = e.clientX; joy.oy = e.clientY; joy.x = joy.y = 0; setStick(true, e.clientX, e.clientY); $('knob').style.transform = ''; }
+    else { touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (touches.size === 2) { const [a, b] = [...touches.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); } }
+  } else { mouseDrag = { x: e.clientX, y: e.clientY }; }
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerId === joy.id) {
+    let dx = e.clientX - joy.ox, dy = e.clientY - joy.oy; const len = Math.hypot(dx, dy), max = 48;
+    if (len > max) { dx *= max / len; dy *= max / len; }
+    joy.x = dx / max; joy.y = dy / max; $('knob').style.transform = `translate(${dx}px, ${dy}px)`;
+  } else if (touches.has(e.pointerId)) {
+    const p = touches.get(e.pointerId), px = p.x, py = p.y; p.x = e.clientX; p.y = e.clientY;
+    if (touches.size >= 2) { const [a, b] = [...touches.values()], nd = Math.hypot(a.x - b.x, a.y - b.y); if (pinchD > 0 && nd > 0) cam.dist = clamp(cam.dist * pinchD / nd, 2, 8); pinchD = nd; }
+    else orbit(e.clientX - px, e.clientY - py, 0.006);
+  } else if (mouseDrag && e.pointerType !== 'touch') {
+    orbit(e.clientX - mouseDrag.x, e.clientY - mouseDrag.y, 0.0045); mouseDrag.x = e.clientX; mouseDrag.y = e.clientY;
+  }
+});
+function endPointer(e) {
+  if (e.pointerId === joy.id) { joy.id = null; joy.x = joy.y = 0; setStick(false); }
+  if (touches.delete(e.pointerId)) pinchD = 0;
+  if (e.pointerType !== 'touch') mouseDrag = null;
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+canvas.addEventListener('wheel', (e) => { if (!entered) return; e.preventDefault(); cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.0012), 2, 8); }, { passive: false });
+const typing = () => document.activeElement && (document.activeElement.tagName === 'INPUT');
+window.addEventListener('keydown', (e) => {
+  if (!entered) return;
+  if (typing()) { if (e.key === 'Escape') document.activeElement.blur(); return; }
+  if (e.key === 'Enter') { const ci = $('chatInput'); if (!ci.disabled) { e.preventDefault(); ci.focus(); } return; }
+  keys.add(e.code);
+  if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
+});
+window.addEventListener('keyup', (e) => keys.delete(e.code));
+window.addEventListener('blur', () => keys.clear());
+
+const PUSH = PIERS.map((p) => ({ x: p.x, z: p.z, r: p.r + 0.3 }));
+function movePlayer(dt) {
+  const k = (c) => keys.has(c);
+  let fwd = (k('KeyW') || k('ArrowUp') ? 1 : 0) - (k('KeyS') || k('ArrowDown') ? 1 : 0);
+  let str = (k('KeyD') ? 1 : 0) - (k('KeyA') ? 1 : 0);
+  const turn = (k('ArrowLeft') || k('KeyQ') ? 1 : 0) - (k('ArrowRight') || k('KeyE') ? 1 : 0);
+  cam.yaw += turn * 1.9 * dt;
+  fwd += -joy.y; str += joy.x;
+  const mag = Math.hypot(fwd, str);
+  if (mag > 1) { fwd /= mag; str /= mag; }
+  if (mag < 0.05) return 0;
+  const speed = (k('ShiftLeft') || k('ShiftRight')) ? 9 : 4.5;
+  const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
+  const ux = -sy * fwd + cy * str, uz = -cy * fwd - sy * str;
+  const px = me.x, pz = me.z, dx = ux * speed * dt, dz = uz * speed * dt;
+  if (walkable(me.x + dx, me.z)) me.x += dx;
+  if (walkable(me.x, me.z + dz)) me.z += dz;
+  for (const c of PUSH) { const ddx = me.x - c.x, ddz = me.z - c.z, d = Math.hypot(ddx, ddz); if (d < c.r) { if (d < 1e-4) me.x += c.r; else { me.x = c.x + ddx / d * c.r; me.z = c.z + ddz / d * c.r; } } }
+  if (!walkable(me.x, me.z)) { me.x = px; me.z = pz; }
+  me.ry += wrapA(Math.atan2(-ux, -uz) - me.ry) * (1 - Math.exp(-dt * 10));
+  return Math.hypot(me.x - px, me.z - pz) / Math.max(dt, 1e-3);
+}
+const TARGET_Y = 1.5;
+function updateCamera(dt) {
+  const k = 1 - Math.exp(-dt * 10);
+  cam.tx += (me.x - cam.tx) * k; cam.tz += (me.z - cam.tz) * k;
+  const cp = Math.cos(cam.pitch), dx = Math.sin(cam.yaw) * cp, dy = Math.sin(cam.pitch), dz = Math.cos(cam.yaw) * cp;
+  let allow = cam.dist;
+  for (let d = 0.3; d <= cam.dist + 1e-6; d += 0.2) {
+    if (!camFree(cam.tx + dx * d, Math.max(0.3, TARGET_Y + dy * d), cam.tz + dz * d)) { allow = Math.max(0.6, d - 0.35); break; }
+  }
+  cam.cur += (allow - cam.cur) * (allow < cam.cur ? Math.min(1, dt * 18) : Math.min(1, dt * 3));
+  const d = cam.cur;
+  camera.position.set(cam.tx + dx * d, Math.max(0.3, TARGET_Y + dy * d), cam.tz + dz * d);
+  camera.lookAt(cam.tx, TARGET_Y + 0.1 + Math.max(0, -cam.pitch) * 9, cam.tz);
+  if (meRec) meRec.av.g.visible = entered && d > 0.9;
+}
+
+// ---------- avatars ----------
+const robeGeo = new THREE.LatheGeometry([[0, 0], [0.42, 0], [0.4, 0.08], [0.33, 0.55], [0.27, 1.0], [0.24, 1.28], [0.13, 1.42], [0, 1.44]].map(([x, y]) => new THREE.Vector2(x, y)), 18);
+const headGeo = new THREE.SphereGeometry(0.155, 16, 12);
+const hoodGeo = new THREE.SphereGeometry(0.19, 16, 10, 0, TAU, 0, Math.PI * 0.6);
+const stoleGeo = new THREE.BoxGeometry(0.07, 0.95, 0.03);
+const handGeo = new THREE.SphereGeometry(0.065, 10, 8);
+const skinMat = new THREE.MeshStandardMaterial({ color: '#d9b994', roughness: 0.8 });
+const robeMats = new Map();
+function robeMat(hex) { if (!robeMats.has(hex)) robeMats.set(hex, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.85 })); return robeMats.get(hex); }
+function labelCanvas(text) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 112; const g = c.getContext('2d');
+  g.font = '600 44px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  let t = text; while (g.measureText(t).width > 460 && t.length > 1) t = t.slice(0, -1);
+  if (t !== text) t = t.slice(0, -1) + '…';
+  const w = Math.min(500, g.measureText(t).width + 44);
+  g.fillStyle = 'rgba(16,12,20,0.72)'; g.beginPath(); g.roundRect((512 - w) / 2, 18, w, 76, 38); g.fill();
+  g.fillStyle = '#f3ead8'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, 256, 58);
+  return c;
+}
+function bubbleCanvas(text) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 220; const g = c.getContext('2d');
+  g.font = '500 32px "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  const lines = []; let cur = '';
+  for (const ch of Array.from(text)) { if (g.measureText(cur + ch).width > 440) { lines.push(cur); cur = ch.trimStart(); if (lines.length === 4) break; } else cur += ch; }
+  if (lines.length < 4 && cur) lines.push(cur); else if (lines.length === 4) lines[3] = lines[3].slice(0, -1) + '…';
+  const lh = 40, h = lines.length * lh + 28, w = Math.min(492, Math.max(...lines.map((l) => g.measureText(l).width)) + 40), x = (512 - w) / 2, y = 200 - h - 14;
+  g.fillStyle = 'rgba(244,236,220,0.95)'; g.beginPath(); g.roundRect(x, y, w, h, 18); g.fill();
+  g.beginPath(); g.moveTo(244, y + h); g.lineTo(256, y + h + 14); g.lineTo(268, y + h); g.fill();
+  g.fillStyle = '#1e1712'; g.textAlign = 'center'; g.textBaseline = 'top';
+  lines.forEach((l, i) => g.fillText(l, 256, y + 14 + i * lh + 2));
+  return c;
+}
+function spriteFrom(c, sx, sy) {
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, fog: false })); s.scale.set(sx, sy, 1); return s;
+}
+function disposeSprite(s) { if (!s) return; s.material.map.dispose(); s.material.dispose(); s.parent && s.parent.remove(s); }
+
+const others = new Map(); // peer key -> record
+function makeAvatar(color) {
+  const g = new THREE.Group();
+  const body = new THREE.Group(); g.add(body);
+  const robe = new THREE.Mesh(robeGeo, robeMat(color)); body.add(robe);
+  const head = new THREE.Mesh(headGeo, skinMat); head.position.set(0, 1.56, 0); body.add(head);
+  const hood = new THREE.Mesh(hoodGeo, robeMat(color)); hood.position.set(0, 1.57, 0.02); hood.rotation.x = 0.75; body.add(hood);
+  for (const sx of [-0.09, 0.09]) { const st = new THREE.Mesh(stoleGeo, M.gold); st.position.set(sx, 0.95, -0.275); st.rotation.x = 0.07; body.add(st); }
+  const hand = new THREE.Mesh(handGeo, skinMat); hand.position.set(0.3, 0.95, -0.12); body.add(hand);
+  return { g, body, robe, hood, hand };
+}
+function upsertPeer(p, x, z, ry) {
+  const pr = p.presence || {};
+  const color = (typeof pr.color === 'string' && ROBE_HEX.has(pr.color.toLowerCase())) ? pr.color.toLowerCase() : '#8a7f72';
+  const nick = cleanText(pr.nick, 20);
+  let rec = others.get(p.peer);
+  if (!rec) {
+    const av = makeAvatar(color);
+    av.g.position.set(x, 0, z); av.g.rotation.y = ry; scene.add(av.g);
+    rec = { peer: p.peer, by: p.by, av, color, nick, name: '', label: null, bubble: null, bubbleUntil: 0, waveT: -1, cur: { x, z, ry }, tgt: { x, z, ry }, phase: Math.random() * TAU, moving: 0 };
+    others.set(p.peer, rec);
+  }
+  rec.by = p.by; rec.nick = nick; rec.tgt = { x, z, ry }; rec.isMe = !!p.isMe;
+  if (color !== rec.color) { rec.color = color; rec.av.robe.material = robeMat(color); rec.av.hood.material = robeMat(color); }
+  return rec;
+}
+function setLabel(rec, name) {
+  if (rec.name === name && rec.label) return;
+  const t = performance.now();
+  if (rec.label && rec !== meRec) { if (t - (rec.labelAt || 0) < 2000) return; }   // remote nick changes: at most once per 2 s
+  rec.labelAt = t;
+  rec.name = name; disposeSprite(rec.label);
+  rec.label = spriteFrom(labelCanvas(name), 1.5, 0.33); rec.label.position.set(0, 2.05, 0); rec.av.g.add(rec.label);
+}
+function removePeer(peer) {
+  const rec = others.get(peer); if (!rec) return;
+  disposeSprite(rec.label); disposeSprite(rec.bubble); scene.remove(rec.av.g); others.delete(peer);
+}
+function showBubble(rec, text) {
+  if (!rec) return;
+  const t = performance.now();
+  if (t - (rec.bubbleAt || 0) < 500) return;   // at most one bubble per 0.5 s per avatar
+  rec.bubbleAt = t;
+  disposeSprite(rec.bubble);
+  rec.bubble = spriteFrom(bubbleCanvas(text), 2.2, 0.945); rec.bubble.position.set(0, 2.62, 0); rec.av.g.add(rec.bubble);
+  rec.bubbleUntil = performance.now() + 7000;
+}
+function animAvatar(rec, v, dt, t, now) {
+  const k = Math.min(1, dt * 9);
+  rec.moving += ((v > 0.25 ? 1 : 0) - rec.moving) * k;
+  if (!reduceMotion) rec.phase += dt * Math.min(v, 5) * 2.6;
+  let y = Math.abs(Math.sin(rec.phase)) * 0.05 * rec.moving, handUp = 0;
+  if (rec.waveT >= 0) {
+    rec.waveT += dt; const w = rec.waveT;
+    y += Math.abs(Math.sin(w * Math.PI * 2.6)) * 0.22 * Math.max(0, 1 - w / 1.4);
+    handUp = Math.max(0, 1 - Math.max(0, w - 1.2) / 0.4);
+    if (w > 1.6) rec.waveT = -1;
+  }
+  rec.av.body.position.y = y;
+  rec.av.hand.position.set(0.3 + handUp * 0.06, 0.95 + handUp * 0.85, -0.12 + Math.sin(t * 14) * 0.06 * handUp);
+  if (rec.bubble && now > rec.bubbleUntil) { disposeSprite(rec.bubble); rec.bubble = null; }
+}
+let meRec = null;
+function ensureMe() {
+  if (meRec) { meRec.av.robe.material = robeMat(myColor); meRec.av.hood.material = robeMat(myColor); return; }
+  const av = makeAvatar(myColor); scene.add(av.g);
+  meRec = { av, label: null, bubble: null, bubbleUntil: 0, waveT: -1, phase: 0, moving: 0, name: '' };
+}
+function refreshMyLabel() { if (meRec) setLabel(meRec, myProfileName || myNick() || '순례자'); }
+
+// ---------- audio: a small bell ----------
+let actx = null, bus = null;
+function initAudio() {
+  try {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      actx = new AC();
+      bus = actx.createGain(); bus.gain.value = 0.5;
+      const delay = actx.createDelay(1), fb = actx.createGain(), lp = actx.createBiquadFilter();
+      delay.delayTime.value = 0.31; fb.gain.value = 0.42; lp.type = 'lowpass'; lp.frequency.value = 2000;
+      bus.connect(actx.destination); bus.connect(delay); delay.connect(lp); lp.connect(fb); fb.connect(delay); lp.connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { actx = null; }
+}
+const BELL_NOTES = [392, 440, 523.25, 587.33, 659.25];
+function bell(seed) {
+  if (!actx || actx.state !== 'running') return;
+  const f = BELL_NOTES[seed % BELL_NOTES.length], t = actx.currentTime;
+  for (const [ratio, amp, dec] of [[0.5, 0.18, 3.2], [1, 0.32, 2.6], [1.19, 0.12, 2.0], [2, 0.14, 1.6], [2.76, 0.07, 1.1], [5.4, 0.03, 0.6]]) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = f * ratio;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(amp * 0.5, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + dec + 0.05);
+  }
+}
+
+// ---------- chat log ----------
+const logEl = $('log');
+function logLine(name, text, sys) {
+  const div = document.createElement('div');
+  if (name) { const b = document.createElement('b'); b.textContent = name; div.appendChild(b); }
+  const s = document.createElement('span'); s.textContent = text; if (sys) s.className = 'sys'; div.appendChild(s);
+  logEl.appendChild(div);
+  while (logEl.children.length > 6) logEl.removeChild(logEl.firstChild);
+  setTimeout(() => div.classList.add('old'), 24000);
+}
+
+// ---------- shared presence: claude.ai room when available, otherwise public MQTT ----------
+let room = null, user = null, viewOnly = false, roomDead = false, mq = null, connecting = true, myProfileName = '';
+const chatInput = $('chatInput'), sendBtn = $('sendBtn'), waveBtn = $('waveBtn');
+const myNick = () => cleanText($('nick').value, 20);
+let myColor = ROBES[0].hex;
+const netMode = () => (room && !roomDead) ? 'room' : (mq ? 'mq' : null);
+function netLive() { const m = netMode(); return m === 'room' ? room.connected() : (m === 'mq' ? mq.live : false); }
+function viewerPeers() { return room && !roomDead ? room.peers().filter((p) => p.kind === 'viewer') : []; }
+function peopleCount() {
+  const m = netMode();
+  if (m === 'room') return Math.max(1, viewerPeers().length);
+  if (m === 'mq') { let n = 1; for (const r of others.values()) if (r.mq) n++; return n; }
+  return 1;
+}
+function refreshControls() {
+  const live = netLive(), can = live && !viewOnly, pending = connecting || (!!netMode() && !live);
+  chatInput.disabled = !can; sendBtn.disabled = !can;
+  chatInput.placeholder = viewOnly ? '보기 전용입니다. 대화는 보낼 수 없습니다' : (can ? '인사를 남겨 보세요 (Enter)' : (pending ? '연결 중입니다…' : '혼자 둘러보는 중이라 대화는 쓸 수 없습니다'));
+  $('dot').classList.toggle('on', live);
+  updateCount();
+}
+function updateCount() {
+  const live = netLive(), pending = connecting || (!!netMode() && !live), n = peopleCount();
+  $('count').textContent = live ? `지금 ${n}명이 성당에 있습니다` : (pending ? '함께 보기에 연결하는 중입니다…' : '혼자 둘러보는 중입니다');
+  $('entryCount').textContent = live ? `지금 ${n}명이 성당에 있습니다.` : (pending ? '함께 보기에 연결하는 중입니다…' : '함께 보기에 연결하지 못해 지금은 혼자 둘러보게 됩니다.');
+}
+function nameFor(p) { return cleanText(p.presence && p.presence.nick, 20) || '순례자'; }
+let nameJob = 0;
+async function resolveNames() {
+  const job = ++nameJob;
+  const mine = room && !roomDead ? room.peers().find((p) => p.sameTab) : null;
+  const ids = [...new Set([...others.values()].map((r) => r.by).concat(mine ? [mine.by] : []).filter((b) => typeof b === 'string'))];
+  let ps = {};
+  if (user && ids.length) { try { ps = await user.profiles(ids); } catch (e) { ps = {}; } }
+  if (job !== nameJob) return;
+  for (const rec of others.values()) {
+    const prof = rec.by && ps[rec.by];
+    const base = cleanText(prof && prof.name, 30) || rec.nick || '순례자';
+    setLabel(rec, rec.isMe ? `${base} (내 다른 창)` : base);
+  }
+  if (mine && mine.by && ps[mine.by]) { myProfileName = cleanText(ps[mine.by].name, 30); refreshMyLabel(); }
+}
+async function senderName(msg) {
+  if (msg.sameTab) return '나';
+  const rec = others.get(msg.peer); if (rec && rec.name) return rec.name;
+  if (user && msg.by) { try { const ps = await user.profiles([msg.by]); const n = cleanText(ps[msg.by] && ps[msg.by].name, 30); if (n) return n; } catch (e) { /* fall through */ } }
+  const p = room && room.peers().find((q) => q.peer === msg.peer);
+  return p ? nameFor(p) : '순례자';
+}
+function onPeers(change) {
+  for (const p of change.left) removePeer(p.peer);
+  const seen = new Set();
+  for (const p of change.peers) {
+    if (p.sameTab || p.kind !== 'viewer') continue;   // my own other windows are drawn like anyone else
+    const pr = p.presence || {};
+    const x = num(pr.x, -26, 26), z = num(pr.z, -64, 70), ry = num(pr.ry, -10, 10);
+    if (x === null || z === null) continue;
+    seen.add(p.peer); upsertPeer(p, x, z, ry === null ? 0 : ry);
+  }
+  for (const peer of [...others.keys()]) if (!seen.has(peer)) removePeer(peer);
+  resolveNames(); updateCount();
+}
+function goSolo() {
+  roomDead = true;
+  for (const peer of [...others.keys()]) removePeer(peer);
+  refreshControls();
+}
+async function connectNet() {
+  // public MQTT first so claude.ai viewers and public-link visitors share one space; claude.ai room only if MQTT is unreachable
+  await connectMqtt();
+  const use = !mq && window.claude && typeof window.claude.use === 'function' ? window.claude.use.bind(window.claude) : null;
+  if (use) {
+    try { room = await use('room'); } catch (e) { room = null; }
+    if (room) { try { user = await use('user'); } catch (e) { user = null; } }
+  }
+  if (room) {
+    const onErr = (e) => { if (e && ['revoked', 'not_granted', 'capability_disabled', 'capability_removed', 'transform_error'].includes(e.code)) goSolo(); };
+    room.onConnection(() => refreshControls(), onErr);
+    room.onPeers(onPeers, onErr);
+    room.on('chat', async (msg) => {
+      const text = cleanText(msg.data && typeof msg.data === 'object' ? msg.data.text : '', 120);
+      if (!text) return;
+      const rec = others.get(msg.peer);
+      if (rec && !msg.sameTab) showBubble(rec, text);
+      logLine(await senderName(msg), text);
+    }, onErr);
+    room.on('wave', async (msg) => {
+      const rec = others.get(msg.peer);
+      if (rec && !msg.sameTab) rec.waveT = 0;
+      bell(hashStr(msg.peer));
+      const who = await senderName(msg);
+      logLine(null, msg.sameTab ? '손을 흔들었습니다.' : `${who} 님이 손을 흔들었습니다.`, true);
+    }, onErr);
+  } else {
+    room = null;
+  }
+  connecting = false;
+  refreshControls();
+  if (entered) sendPresence(performance.now(), true);
+}
+
+// --- public MQTT (used outside claude.ai) ---
+const MQ_P = 'brx-cathedral-v1/nd/';
+const MQ_BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'];
+const myId = (Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8)).replace(/[^a-z0-9]/g, '');
+const mqRate = new Map();
+let mqAll = { t: 0, n: 0 };   // inbound budget over all senders combined
+const dec = new TextDecoder();
+function mqPub(sub, obj) { if (mq && mq.live) { try { mq.client.publish(MQ_P + sub, JSON.stringify(obj), { qos: 0, retain: false }); } catch (e) { /* drop */ } } }
+function tryBroker(lib, url) {
+  return new Promise((resolve) => {
+    let settled = false, client;
+    const opts = { clientId: 'nd_' + myId, clean: true, keepalive: 20, connectTimeout: 6000, reconnectPeriod: 3000, protocolVersion: 4,
+      will: { topic: MQ_P + 'bye/' + myId, payload: JSON.stringify({ id: myId }), qos: 0, retain: false } };
+    try { client = lib.connect(url, opts); } catch (e) { resolve(null); return; }
+    const timer = setTimeout(() => { if (settled) return; settled = true; try { client.end(true); } catch (e) { /* ignore */ } resolve(null); }, 7000);
+    client.on('error', () => {});
+    client.once('connect', () => { if (settled) return; settled = true; clearTimeout(timer); resolve(client); });
+  });
+}
+async function connectMqtt() {
+  let lib = null;
+  try { const mod = await import('https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.esm.js'); lib = mod.default && mod.default.connect ? mod.default : mod; } catch (e) { lib = null; }
+  if (!lib || typeof lib.connect !== 'function') return;
+  for (const url of MQ_BROKERS) {
+    const client = await tryBroker(lib, url);
+    if (!client) continue;
+    mq = { client, live: true, lastSent: 0, lastP: null };
+    const subscribe = () => client.subscribe([MQ_P + 'p/+', MQ_P + 'bye/+', MQ_P + 'chat', MQ_P + 'wave'], { qos: 0 });
+    subscribe();
+    client.on('connect', () => { mq.live = true; subscribe(); refreshControls(); sendPresence(performance.now(), true); });
+    client.on('close', () => { if (mq) { mq.live = false; refreshControls(); } });
+    client.on('message', onMqMessage);
+    window.addEventListener('pagehide', () => { try { client.publish(MQ_P + 'bye/' + myId, JSON.stringify({ id: myId }), { qos: 0, retain: false }); client.end(); } catch (e) { /* leaving */ } });
+    return;
+  }
+}
+function onMqMessage(topic, payload) {
+  if (!payload || payload.length > 2048 || typeof topic !== 'string' || !topic.startsWith(MQ_P)) return;
+  let d; try { d = JSON.parse(dec.decode(payload)); } catch (e) { return; }
+  if (!d || typeof d !== 'object') return;
+  const id = typeof d.id === 'string' ? d.id.replace(/[^a-z0-9]/gi, '').slice(0, 24) : '';
+  if (!id || id === myId) return;
+  const now = performance.now();
+  if (now - mqAll.t > 1000) mqAll = { t: now, n: 0 };
+  if (++mqAll.n > 60) return;
+  let rl = mqRate.get(id); if (!rl || now - rl.t > 1000) { rl = { t: now, n: 0 }; mqRate.set(id, rl); }
+  if (++rl.n > 20) return;
+  const sub = topic.slice(MQ_P.length), key = 'mq:' + id;
+  if (sub.startsWith('p/')) {
+    if (sub.slice(2) !== id) return;
+    const x = num(d.x, -26, 26), z = num(d.z, -64, 70), ry = num(d.ry, -10, 10);
+    if (x === null || z === null) return;
+    if (!others.has(key) && others.size >= (coarse ? 24 : 80)) return;
+    const fresh = !others.has(key);
+    const rec = upsertPeer({ peer: key, by: null, presence: { color: d.color, nick: d.nick } }, x, z, ry === null ? 0 : ry);
+    rec.mq = true; rec.lastSeen = now;
+    setLabel(rec, rec.nick || '순례자');
+    if (fresh) updateCount();
+  } else if (sub.startsWith('bye/')) {
+    if (sub.slice(4) !== id) return;
+    const r = others.get(key); if (r) r.lastSeen = Math.min(r.lastSeen, now - 4500);   // let the 5 s prune drop it; a live presence refutes a spoofed bye
+  } else if (sub === 'chat') {
+    const rec = others.get(key); if (!rec) return;   // unknown senders cannot flood the log
+    const text = cleanText(d.text, 120); if (!text) return;
+    showBubble(rec, text);
+    logLine(rec.name || '순례자', text);
+  } else if (sub === 'wave') {
+    const rec = others.get(key); if (!rec) return;
+    rec.waveT = 0;
+    bell(hashStr(id));
+    logLine(null, `${rec.name || '순례자'} 님이 손을 흔들었습니다.`, true);
+  }
+}
+function pruneMq(now) {
+  let changed = false;
+  for (const [key, rec] of others) if (rec.mq && now - rec.lastSeen > 5000) { removePeer(key); changed = true; }
+  for (const [id, rl] of mqRate) if (now - rl.t > 10000) mqRate.delete(id);
+  if (changed) updateCount();
+}
+
+let lastSent = 0, lastP = null;
+function sendPresence(now, full) {
+  if (!entered) return;
+  const m = netMode();
+  const p = { x: r2(me.x), z: r2(me.z), ry: r2(wrapA(me.ry)) };
+  if (m === 'room') {
+    if (!full && now - lastSent < 70) return;
+    if (!full && lastP && p.x === lastP.x && p.z === lastP.z && p.ry === lastP.ry) return;
+    lastSent = now; lastP = p;
+    const patch = full ? { ...p, color: myColor, nick: myNick() || null } : p;
+    room.presence(patch).catch(() => {});
+  } else if (m === 'mq' && mq.live) {
+    const moved = !mq.lastP || p.x !== mq.lastP.x || p.z !== mq.lastP.z || p.ry !== mq.lastP.ry;
+    if (!full && !(moved && now - mq.lastSent >= 100) && now - mq.lastSent < 2000) return;
+    mq.lastSent = now; mq.lastP = p;
+    mqPub('p/' + myId, { id: myId, ...p, color: myColor, nick: myNick() || null, t: Date.now() });
+  }
+}
+
+$('chatForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = cleanText(chatInput.value, 120);
+  if (!text || viewOnly || !netLive()) return;
+  chatInput.value = '';
+  if (netMode() === 'room') {
+    room.emit('chat', { text }).then(() => showBubble(meRec, text)).catch((err) => { if (err && err.code === 'not_permitted') { viewOnly = true; refreshControls(); waveBtn.disabled = true; } });
+  } else { mqPub('chat', { id: myId, text }); showBubble(meRec, text); logLine('나', text); }
+});
+let waveCool = 0;
+waveBtn.addEventListener('click', () => {
+  initAudio();
+  const now = performance.now(); if (now < waveCool) return; waveCool = now + 1500;
+  if (meRec) meRec.waveT = 0;
+  const m = netMode();
+  if (m === 'room' && netLive() && !viewOnly) {
+    room.emit('wave').catch((err) => { if (err && err.code === 'not_permitted') { viewOnly = true; waveBtn.disabled = true; refreshControls(); } });
+  } else if (m === 'mq' && netLive()) { mqPub('wave', { id: myId }); bell(hashStr(myId)); logLine(null, '손을 흔들었습니다.', true); }
+  else { bell(hashStr('me')); logLine(null, '손을 흔들었습니다.', true); }
+});
+
+// ---------- entry ----------
+{
+  const saved = store.get('cathedral.nick'); if (saved) $('nick').value = cleanText(saved, 20);
+  const savedColor = store.get('cathedral.robe'); if (savedColor && ROBE_HEX.has(savedColor)) myColor = savedColor;
+  const wrap = $('robes');
+  ROBES.forEach((r) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'robe'; b.id = 'robe-' + r.hex.slice(1);
+    b.setAttribute('aria-pressed', String(r.hex === myColor));
+    const i = document.createElement('i'); i.style.background = r.hex; b.appendChild(i);
+    b.appendChild(document.createTextNode(r.name));
+    b.addEventListener('click', () => { myColor = r.hex; wrap.querySelectorAll('.robe').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
+    wrap.appendChild(b);
+  });
+  if (coarse) $('entryHelp').textContent = '화면 왼쪽을 엄지로 밀어 걷고, 오른쪽을 끌어 시점을 돌립니다. 두 손가락으로 벌리거나 모아 카메라 거리를 조절합니다.';
+}
+$('entryForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  initAudio();
+  store.set('cathedral.nick', myNick()); store.set('cathedral.robe', myColor);
+  entered = true;
+  ensureMe(); refreshMyLabel();
+  $('entry').hidden = true;
+  for (const id of ['badge', 'hint', 'log', 'bar']) $(id).hidden = false;
+  $('hint').textContent = coarse ? '왼쪽 엄지로 걷기 · 오른쪽 끌어 시점 돌리기 · 두 손가락 거리' : 'WASD 걷기 · Shift 빠르게 · 끌어서 시점 돌리기 · 휠 거리 · Enter 대화';
+  setTimeout(() => $('hint').classList.add('fade'), 9000);
+  canvas.focus({ preventScroll: true });
+  sendPresence(performance.now(), true);
+  logLine(null, '서쪽 정문으로 들어왔습니다. 정면 동쪽 끝이 내진이고, 가운데 교차부에 청동 제단이 있습니다.', true);
+});
+
+// ---------- loop ----------
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w < h ? 70 : 60; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize); resize();
+
+const clock = new THREE.Clock();
+let zoneShown = '', lastPrune = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, now = performance.now();
+  let mySpeed = 0;
+  if (entered) {
+    mySpeed = movePlayer(dt);
+    sendPresence(now, false);
+    const z = zoneName(me.x, me.z); if (z !== zoneShown) { zoneShown = z; $('zone').textContent = z; }
+  } else {
+    cam.yaw = Math.sin(t * 0.1) * 0.22; cam.pitch = 0.3 + Math.sin(t * 0.07) * 0.08;
+  }
+  updateCamera(dt);
+  if (meRec) { meRec.av.g.position.set(me.x, 0, me.z); meRec.av.g.rotation.y = me.ry; animAvatar(meRec, mySpeed, dt, t, now); }
+
+  const k = 1 - Math.exp(-dt * 9);
+  for (const rec of others.values()) {
+    const c = rec.cur, g = rec.tgt, ox = c.x, oz = c.z;
+    c.x += (g.x - c.x) * k; c.z += (g.z - c.z) * k; c.ry += wrapA(g.ry - c.ry) * k;
+    rec.av.g.position.set(c.x, 0, c.z); rec.av.g.rotation.y = c.ry;
+    animAvatar(rec, Math.hypot(c.x - ox, c.z - oz) / Math.max(dt, 1e-3), dt, t, now);
+  }
+  if (mq && now - lastPrune > 1000) { lastPrune = now; pruneMq(now); }
+
+  flameMat.size = 0.13 * (reduceMotion ? 1 : 0.9 + 0.1 * Math.sin(t * 13.7) * Math.sin(t * 7.3 + 1.2));
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+updateCount();
+requestAnimationFrame(frame);
+connectNet();
+</script>
+
+</body>
+</html>
